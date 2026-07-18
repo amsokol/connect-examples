@@ -86,13 +86,13 @@
     {
       "description": "Group other Rust crate updates (tokio, etc.)",
       "matchManagers": ["cargo"],
-      "excludePackageNames": [
-        "buffa",
-        "/^buffa-/",
-        "connectrpc",
-        "/^connectrpc-/"
-      ],
-      "groupName": "rust crates"
+      "groupName": "rust crates",
+      "matchPackageNames": [
+        "!buffa",
+        "!/^buffa-/",
+        "!connectrpc",
+        "!/^connectrpc-/"
+      ]
     }
   ]
 }
