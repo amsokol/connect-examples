@@ -1,0 +1,30 @@
+edition = "2024";
+
+package api.v1;
+
+import "google/protobuf/go_features.proto";
+import "buf/validate/validate.proto";
+
+option go_package = "github.com/amsokol/connect-examples/go/api/v1;apiv1";
+option features.(pb.go).api_level = API_OPAQUE;
+
+// EchoService echoes a message back to the caller.
+service EchoService {
+  // Echo returns the same message that was sent.
+  rpc Echo(EchoRequest) returns (EchoResponse) {}
+}
+
+// EchoRequest is the request message for EchoService.Echo.
+message EchoRequest {
+  string message = 11 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string = {
+      min_len: 1,
+    }
+  ];
+}
+
+// EchoResponse is the response message for EchoService.Echo.
+message EchoResponse {
+  string message = 1;
+}

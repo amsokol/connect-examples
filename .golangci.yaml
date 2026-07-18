@@ -1,0 +1,250 @@
+version: "2"
+
+run:
+  timeout: 5m
+  tests: true
+  # Fail the process (and CI) when any issue is found.
+  issues-exit-code: 1
+
+linters:
+  default: all
+  disable:
+    # Deprecated — superseded by gomodguard_v2 / wsl_v5 (on via default: all).
+    - gomodguard
+    - wsl
+    # Domain-specific; not used in this repo.
+    - arangolint
+    - clickhouselint
+    - rowserrcheck
+    - sqlclosecheck
+    - promlinter
+    - spancheck
+    - ginkgolinter
+    - unqueryvet
+    - zerologlint
+    - noinlineerr
+  settings:
+    depguard:
+      rules:
+        main:
+          list-mode: lax
+          allow:
+            - $gostd
+            - github.com/amsokol/connect-examples
+            - connectrpc.com
+            - golang.org/x
+            - google.golang.org/protobuf
+            - buf.build
+    errcheck:
+      check-type-assertions: true
+      check-blank: true
+    errorlint:
+      errorf: true
+      asserts: true
+      comparison: true
+    exhaustive:
+      default-signifies-exhaustive: false
+    exhaustruct:
+      exclude:
+        - '^github\.com/amsokol/connect-examples/go/api/v1\..*'
+        - '^google\.golang\.org/protobuf/.*'
+        - '^connectrpc\.com/connect\..*'
+    gocognit:
+      min-complexity: 10
+    goconst:
+      min-len: 2
+      min-occurrences: 2
+    gocritic:
+      enable-all: true
+    gocyclo:
+      min-complexity: 10
+    godot:
+      period: true
+      capital: true
+    godox:
+      keywords:
+        - TODO
+        - FIXME
+        - BUG
+        - HACK
+        - XXX
+    govet:
+      enable-all: true
+    ireturn:
+      allow:
+        - anon
+        - error
+        - empty
+        - stdlib
+        - generic
+    lll:
+      line-length: 120
+      tab-width: 4
+    misspell:
+      locale: US
+    mnd:
+      checks:
+        - argument
+        - case
+        - condition
+        - operation
+        - return
+        - assign
+      ignored-numbers:
+        - "0"
+        - "1"
+        - "2"
+        - "3"
+    nakedret:
+      max-func-lines: 0
+    nestif:
+      min-complexity: 2
+    nilnil:
+      checked-types:
+        - ptr
+        - func
+        - iface
+        - map
+        - chan
+    nolintlint:
+      allow-unused: false
+      require-explanation: true
+      require-specific: true
+    nonamedreturns:
+      report-error-in-defer: true
+    predeclared:
+      qualified-name: true
+    revive:
+      severity: error
+      rules:
+        - name: atomic
+        - name: blank-imports
+        - name: bool-literal-in-expr
+        - name: call-to-gc
+        - name: confusing-naming
+        - name: confusing-results
+        - name: constant-logical-expr
+        - name: context-as-argument
+        - name: context-keys-type
+        - name: deep-exit
+        - name: defer
+        - name: dot-imports
+        - name: duplicated-imports
+        - name: early-return
+        - name: empty-block
+        - name: empty-lines
+        - name: error-naming
+        - name: error-return
+        - name: error-strings
+        - name: errorf
+        - name: exported
+        - name: get-return
+        - name: identical-branches
+        - name: if-return
+        - name: import-shadowing
+        - name: increment-decrement
+        - name: indent-error-flow
+        - name: modifies-parameter
+        - name: modifies-value-receiver
+        - name: package-comments
+        - name: range
+        - name: range-val-address
+        - name: range-val-in-closure
+        - name: receiver-naming
+        - name: redefines-builtin-id
+        - name: string-of-int
+        - name: time-naming
+        - name: unexported-naming
+        - name: unexported-return
+        - name: unnecessary-stmt
+        - name: unreachable-code
+        - name: unused-parameter
+        - name: unused-receiver
+        - name: useless-break
+        - name: waitgroup-by-value
+        - name: var-naming
+        - name: var-declaration
+        - name: unconditional-recursion
+        - name: superfluous-else
+        - name: struct-tag
+    sloglint:
+      no-global: all
+      context: all
+    tagliatelle:
+      case:
+        rules:
+          json: snake
+          yaml: snake
+          xml: snake
+          bson: snake
+          mapstructure: snake
+    varnamelen:
+      min-name-length: 2
+      ignore-names:
+        - err
+        - ok
+        - id
+        - i
+        - j
+        - k
+        - n
+        - t
+        - w
+        - r
+        - s
+        - ctx
+      ignore-decls:
+        - T any
+        - M any
+    wrapcheck:
+      ignore-sigs:
+        - .Error(
+        - errors.New(
+        - errors.Unwrap(
+        - errors.Join(
+        - .Wrap(
+        - .Wrapf(
+        - .WithMessage(
+        - .WithMessagef(
+        - .WithStack(
+    wsl_v5:
+      default: all
+      allow-first-in-block: false
+      allow-whole-block: false
+  exclusions:
+    generated: strict
+    # No soft presets — report as much as possible.
+    presets: []
+    rules:
+      # Generated Connect/protobuf APIs intentionally return interfaces / use their own style.
+      - path: go/api/
+        linters:
+          - ireturn
+          - revive
+          - exhaustruct
+          - varnamelen
+          - wsl_v5
+          - nlreturn
+          - nonamedreturns
+          - wrapcheck
+          - err113
+
+formatters:
+  enable:
+    - gofumpt
+    - goimports
+    - gci
+  settings:
+    gofumpt:
+      module-path: github.com/amsokol/connect-examples
+      extra-rules: true
+    goimports:
+      local-prefixes:
+        - github.com/amsokol/connect-examples
+    gci:
+      sections:
+        - standard
+        - default
+        - prefix(github.com/amsokol/connect-examples)
+  exclusions:
+    generated: strict

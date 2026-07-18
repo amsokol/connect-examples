@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build-lint-test:
+    name: Build, lint, test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Set up Buf
+        uses: bufbuild/buf-action@v1
+        with:
+          setup_only: true
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download modules
+        run: go mod download
+
+      - name: Lint Protobuf
+        run: buf lint --error-format=github-actions
+
+      - name: Check generated code is up to date
+        run: |
+          set -euo pipefail
+          buf generate
+          if ! git diff --exit-code -- go/api; then
+            echo "::error::Generated Go code is out of date. Run 'buf generate' and commit the result."
+            exit 1
+          fi
+
+      - name: Build
+        run: go build ./...
+
+      - name: Lint Go
+        run: go tool golangci-lint run --issues-exit-code=1 ./...
+
+      - name: Test
+        run: go test ./...

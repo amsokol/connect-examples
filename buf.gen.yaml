@@ -1,0 +1,19 @@
+version: v2
+plugins:
+  - local: [go, tool, protoc-gen-go]
+    out: go
+    opt: paths=source_relative
+  - local: [go, tool, protoc-gen-connect-go]
+    out: go
+    opt:
+      - paths=source_relative
+      - package_suffix=
+      - simple
+managed:
+  enabled: true
+  override:
+    - file_option: go_package_prefix
+      value: github.com/amsokol/connect-examples/go
+  disable:
+    - file_option: go_package
+      module: buf.build/bufbuild/protovalidate
