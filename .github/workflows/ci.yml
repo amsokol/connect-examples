@@ -14,16 +14,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
           cache: true
 
       - name: Set up Buf
-        uses: bufbuild/buf-action@v1
+        uses: bufbuild/buf-action@v1.4.0
         with:
           setup_only: true
           github_token: ${{ secrets.GITHUB_TOKEN }}
