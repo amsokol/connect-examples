@@ -12,7 +12,7 @@ path = "src/main.rs"
 
 [dependencies]
 buffa = { workspace = true }
-connectrpc = { workspace = true }
+connectrpc = { workspace = true, features = ["client"] }
 tokio = { workspace = true }
 
 [build-dependencies]

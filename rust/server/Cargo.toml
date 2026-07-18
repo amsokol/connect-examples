@@ -1,0 +1,25 @@
+[package]
+name = "echo-server"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+description = "Connect Echo server (connect-rust)"
+
+[[bin]]
+name = "echo-server"
+path = "src/main.rs"
+
+[dependencies]
+buffa = { workspace = true }
+connectrpc = { workspace = true, features = ["server", "gzip"] }
+http = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+[build-dependencies]
+connectrpc-build = { workspace = true }
+
+[dev-dependencies]
+bytes = { workspace = true }

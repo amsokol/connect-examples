@@ -70,6 +70,7 @@ jobs:
         run: |
           set -euo pipefail
           cargo clippy --locked -- -D warnings
+          cargo test --locked -p echo-server
 
       - name: Lint Go
         run: go tool golangci-lint run --issues-exit-code=1 ./...

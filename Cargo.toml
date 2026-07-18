@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["rust/client"]
+members = ["rust/client", "rust/server"]
 
 [workspace.package]
 version = "0.1.0"
@@ -13,12 +13,14 @@ buffa = { version = "=0.8.1", default-features = false, features = [
     "std",
     "fast-utf8",
 ] }
-connectrpc = { version = "=0.8.1", default-features = false, features = [
-    "client",
-] }
+bytes = "=1.12.1"
+connectrpc = { version = "=0.8.1", default-features = false }
 connectrpc-build = "=0.8.0"
+http = "=1.4.2"
 tokio = { version = "=1.53.0", features = [
     "macros",
     "rt-multi-thread",
     "time",
 ] }
+tracing = "=0.1.44"
+tracing-subscriber = { version = "=0.3.23", features = ["env-filter"] }

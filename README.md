@@ -16,6 +16,7 @@ python/buf/validate/           # generated Protovalidate stubs (via --include-im
 python/echo/client/            # Python Echo client (retry interceptor)
 Cargo.toml                     # Rust workspace root
 rust/client/                   # Rust Echo client ([connect-rust](https://github.com/connectrpc/connect-rust))
+rust/server/                   # Rust Echo server (HTTP/1.1 + h2c + request logging)
 requirements.in                # Python dependency pins (source)
 requirements.txt               # locked Python deps (pip-compile)
 requirements-dev.in            # Python dev tools (ruff, pip-audit)
@@ -59,19 +60,29 @@ Generated Go files land in `go/api/v1/` (`echo.pb.go` and `echo.connect.go` in t
 
 Generated Python files land in `python/api/v1/` (`echo_pb.py` and `echo_connect.py`).
 
-Rust codegen runs from `rust/client/build.rs` via [`connectrpc-build`](https://crates.io/crates/connectrpc-build) (`buf build` → buffa/connect stubs into `$OUT_DIR`). No checked-in generated Rust sources.
+Rust codegen runs from each crate's `build.rs` (`rust/client`, `rust/server`) via [`connectrpc-build`](https://crates.io/crates/connectrpc-build) (`buf build` → buffa/connect stubs into `$OUT_DIR`). No checked-in generated Rust sources.
 
 ## Run the Echo example
 
 ### Server (Go)
 
-Terminal 1 — server (HTTP/1.1 + h2c on `:8080`):
+Terminal 1 — Go server (HTTP/1.1 + h2c on `:8080`):
 
 ```bash
 go run ./go/echo/cmd/server
 ```
 
 The server logs each unary RPC with `log/slog` (procedure, Connect/gRPC protocol, HTTP version, peer address, method, Content-Type, User-Agent, duration, and error code if any).
+
+### Server (Rust)
+
+Alternative to the Go server (same port — run only one):
+
+```bash
+cargo run -p echo-server
+```
+
+Serves Connect over HTTP/1.1 and h2c on `127.0.0.1:8080`. Logs unary RPCs with `tracing` (procedure, protocol, peer, Content-Type, User-Agent, duration). Rejects empty `message` with `InvalidArgument` (Go uses Protovalidate for the same rule).
 
 ### Go client
 
@@ -162,6 +173,7 @@ ruff check python
 ruff format --check python/echo
 pip-audit -r requirements.txt -r requirements-dev.txt
 cargo clippy -- -D warnings
+cargo test -p echo-server
 ```
 
 ## CI
@@ -171,7 +183,7 @@ GitHub Actions (`.github/workflows/ci.yml`) runs on pushes to `main` and on pull
 1. `go tool buf lint`
 2. `go tool buf generate` for Go and Python templates and fail if generated code is out of date
 3. `go build ./...`
-4. `cargo clippy` (Rust Echo client)
+4. `cargo clippy` / `cargo test -p echo-server` (Rust)
 5. `go tool golangci-lint run ./...`
 6. `ruff check` / `ruff format --check` (Python)
 7. `go tool govulncheck ./...` and `pip-audit` on `requirements.txt` / `requirements-dev.txt`
@@ -179,12 +191,12 @@ GitHub Actions (`.github/workflows/ci.yml`) runs on pushes to `main` and on pull
 
 ## Notes
 
-- Request validation: `message` is required and non-empty (`buf.validate` in the proto; `connectrpc.com/validate` interceptor on the server).
+- Request validation: `message` is required and non-empty (`buf.validate` in the proto; `connectrpc.com/validate` on the Go server; a matching check in the Rust server handler).
 - Go Protobuf uses the **opaque** API (`features.(pb.go).api_level = API_OPAQUE`).
 - Connect Go codegen uses `package_suffix=` so handlers/clients live next to the `.pb.go` types.
 - Python uses [connectrpc](https://pypi.org/project/connectrpc/) with [protobuf-py](https://protobufpy.com) (Buf `bufbuild/py` + `connectrpc/py` plugins).
 - Python pins in `requirements*.in` use exact `==` versions so Renovate bumps are explicit.
-- Rust uses a Cargo workspace (`Cargo.toml` at the repo root); crate pins live in `[workspace.dependencies]`. Codegen is via `rust/client/build.rs` + Buf (not checked-in stubs).
+- Rust uses a Cargo workspace (`Cargo.toml` at the repo root); crate pins live in `[workspace.dependencies]`. Codegen is via each crate's `build.rs` + Buf (not checked-in stubs).
 
 ## Dependency updates (Renovate)
 
