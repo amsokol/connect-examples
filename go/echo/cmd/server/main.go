@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	"connectrpc.com/grpchealth"
 	"connectrpc.com/validate"
 
 	apiv1 "github.com/amsokol/connect-examples/go/api/v1"
@@ -39,6 +40,10 @@ func main() {
 		connect.WithInterceptors(newLogInterceptor(logger), validate.NewInterceptor()),
 	)
 	mux.Handle(path, withHTTPProto(handler))
+
+	// grpc.health.v1 for Kubernetes gRPC probes / grpc_health_probe.
+	checker := grpchealth.NewStaticChecker(apiv1.EchoServiceName)
+	mux.Handle(grpchealth.NewHandler(checker))
 
 	var protocols http.Protocols
 

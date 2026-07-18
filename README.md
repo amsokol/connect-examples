@@ -44,6 +44,7 @@ Go tools used by this repo are declared in `go.mod` and run via `go tool` (insta
 - `protoc-gen-go` / `protoc-gen-connect-go` — code generation
 - `golangci-lint` — Go linting
 - `govulncheck` — dependency vulnerability scanning
+- `grpc-health-probe` — local gRPC health checks against `grpc.health.v1`
 
 ## Generate code
 
@@ -72,7 +73,13 @@ Terminal 1 — Go server (HTTP/1.1 + h2c on `:8080`):
 go run ./go/echo/cmd/server
 ```
 
-The server logs each unary RPC with `log/slog` (procedure, Connect/gRPC protocol, HTTP version, peer address, method, Content-Type, User-Agent, duration, and error code if any).
+The server logs each unary RPC with `log/slog` (procedure, Connect/gRPC protocol, HTTP version, peer address, method, Content-Type, User-Agent, duration, and error code if any). It also serves [`grpc.health.v1.Health`](https://github.com/connectrpc/grpchealth-go) (`Serving` for `api.v1.EchoService`) for Kubernetes gRPC probes and `grpc_health_probe`:
+
+```bash
+go tool grpc-health-probe \
+  -addr=localhost:8080 \
+  -service=api.v1.EchoService
+```
 
 ### Server (Rust)
 
