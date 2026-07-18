@@ -122,6 +122,8 @@ Hello, Jane!
 
 `python/echo/client/retry.py` retries `Unavailable` / `ResourceExhausted` and common transport failures with the same 5-attempt exponential backoff as the Go client.
 
+The client uses Connect over HTTP/2 cleartext (h2c) via `pyqwest.SyncHTTPTransport(http_version=HTTPVersion.HTTP2)`, matching the Go and Rust clients. For HTTP/1.1, omit `http_version` or set `HTTPVersion.HTTP1` in `python/echo/client/__main__.py`.
+
 To refresh locked deps after editing `requirements.in` or `requirements-dev.in` (with the venv activated):
 
 ```bash
