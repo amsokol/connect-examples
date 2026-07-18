@@ -19,6 +19,8 @@ requirements.txt               # locked Python deps (pip-compile)
 requirements-dev.in            # Python dev tools (ruff, pip-audit)
 requirements-dev.txt           # locked Python dev deps
 ruff.toml                      # Ruff linter/formatter config
+pyrightconfig.json             # basedpyright / Pyright (venv + import paths)
+.vscode/settings.json          # Cursor/VS Code: Python venv, Ruff, basedpyright
 buf.yaml                       # Buf lint config
 buf.gen.go.yaml                # Go codegen
 buf.gen.python.yaml            # Python codegen (use with --include-imports)

@@ -1,0 +1,14 @@
+{
+  "venvPath": "python",
+  "venv": ".venv",
+  "pythonVersion": "3.14",
+  "extraPaths": ["."],
+  "include": ["python"],
+  "exclude": [
+    "python/.venv",
+    "python/api",
+    "python/buf",
+    "**/__pycache__"
+  ],
+  "reportMissingImports": true
+}

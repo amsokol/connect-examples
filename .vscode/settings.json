@@ -1,0 +1,18 @@
+{
+  "python.defaultInterpreterPath": "${workspaceFolder}/python/.venv/bin/python",
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll.ruff": "explicit",
+      "source.organizeImports.ruff": "explicit"
+    }
+  },
+  "ruff.enable": true,
+  "ruff.nativeServer": "on",
+  "ruff.configuration": "${workspaceFolder}/ruff.toml",
+  "ruff.interpreter": [
+    "${workspaceFolder}/python/.venv/bin/python"
+  ],
+  "ruff.importStrategy": "fromEnvironment"
+}
