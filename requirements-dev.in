@@ -1,0 +1,3 @@
+# Dev / CI tooling for the Python example.
+ruff>=0.15.22
+pip-audit>=2.10.1

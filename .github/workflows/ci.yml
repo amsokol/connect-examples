@@ -28,6 +28,15 @@ jobs:
           setup_only: true
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+
       - name: Download modules
         run: go mod download
 
@@ -37,9 +46,14 @@ jobs:
       - name: Check generated code is up to date
         run: |
           set -euo pipefail
-          buf generate
+          buf generate --template buf.gen.go.yaml
+          buf generate --template buf.gen.python.yaml --include-imports
           if ! git diff --exit-code -- go/api; then
-            echo "::error::Generated Go code is out of date. Run 'buf generate' and commit the result."
+            echo "::error::Generated Go code is out of date. Run 'buf generate --template buf.gen.go.yaml' and commit the result."
+            exit 1
+          fi
+          if ! git diff --exit-code -- python/api python/buf python/__init__.py; then
+            echo "::error::Generated Python code is out of date. Run 'buf generate --template buf.gen.python.yaml --include-imports' and commit the result."
             exit 1
           fi
 
@@ -49,8 +63,18 @@ jobs:
       - name: Lint Go
         run: go tool golangci-lint run --issues-exit-code=1 ./...
 
+      - name: Lint Python
+        run: |
+          set -euo pipefail
+          python -m pip install -r requirements-dev.txt
+          ruff check python
+          ruff format --check python/echo
+
       - name: Vulnerability check
-        run: go tool govulncheck ./...
+        run: |
+          set -euo pipefail
+          go tool govulncheck ./...
+          pip-audit -r requirements.txt -r requirements-dev.txt
 
       - name: Test
         run: go test ./...
