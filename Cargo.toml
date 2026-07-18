@@ -17,4 +17,8 @@ connectrpc = { version = "=0.8.1", default-features = false, features = [
     "client",
 ] }
 connectrpc-build = "=0.8.0"
-tokio = { version = "1.53.0", features = ["macros", "rt-multi-thread", "time"] }
+tokio = { version = "=1.53.0", features = [
+    "macros",
+    "rt-multi-thread",
+    "time",
+] }
