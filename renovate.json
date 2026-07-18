@@ -32,6 +32,23 @@
   },
   "packageRules": [
     {
+      "description": "Do not manage compiled lockfiles via pip_requirements (only .in pins)",
+      "matchManagers": ["pip_requirements"],
+      "matchFileNames": ["requirements.txt", "requirements-dev.txt"],
+      "enabled": false
+    },
+    {
+      "description": "Do not open PRs for pip-compile lockfile-only / transitive deps",
+      "matchManagers": ["pip-compile"],
+      "matchDepTypes": ["indirect"],
+      "enabled": false
+    },
+    {
+      "description": "Ignore Connect protobuf-py transitive pins until connectrpc bumps them",
+      "matchPackageNames": ["protobuf-py", "protobuf-py-ext"],
+      "enabled": false
+    },
+    {
       "description": "Group Go module updates",
       "matchManagers": ["gomod"],
       "groupName": "go modules"
