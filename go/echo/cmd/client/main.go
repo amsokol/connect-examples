@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 
+	"connectrpc.com/connect"
 	"golang.org/x/net/http2"
 
 	apiv1 "github.com/amsokol/connect-examples/go/api/v1"
@@ -23,7 +24,11 @@ func main() {
 			},
 		},
 	}
-	client := apiv1.NewEchoServiceClient(httpClient, "http://localhost:8080")
+	client := apiv1.NewEchoServiceClient(
+		httpClient,
+		"http://localhost:8080",
+		connect.WithInterceptors(newRetryInterceptor()),
+	)
 
 	/* HTTP/1.1
 	client := apiv1.NewEchoServiceClient(
