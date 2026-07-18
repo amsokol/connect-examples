@@ -8,11 +8,12 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Duration;
 
-use api::v1::{EchoRequest, EchoResponse, EchoService, EchoServiceExt};
+use api::v1::{ECHO_SERVICE_SERVICE_NAME, EchoRequest, EchoResponse, EchoService, EchoServiceExt};
 use connectrpc::{
     ConnectError, ConnectRpcService, RequestContext, Response, Router, Server, ServiceRequest,
     ServiceResult,
 };
+use connectrpc_health::install_static;
 use log::LogInterceptor;
 use tracing_subscriber::EnvFilter;
 
@@ -44,7 +45,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         .init();
 
     let addr: SocketAddr = "127.0.0.1:8080".parse()?;
-    let router = Arc::new(EchoServer).register(Router::new());
+
+    // grpc.health.v1 for Kubernetes gRPC probes / grpc_health_probe.
+    let (router, _health) = install_static(Router::new(), [ECHO_SERVICE_SERVICE_NAME]);
+    let router = Arc::new(EchoServer).register(router);
     let service = ConnectRpcService::new(router).with_interceptor(LogInterceptor);
 
     // Match the Go server: HTTP/1.1 + h2c, 10s header read timeout.
@@ -65,11 +69,7 @@ mod tests {
 
     #[tokio::test]
     async fn echo_greets_message() {
-        let body = Bytes::from(
-            EchoRequest::default()
-                .with_message("Jane")
-                .encode_to_vec(),
-        );
+        let body = Bytes::from(EchoRequest::default().with_message("Jane").encode_to_vec());
         let view = EchoRequest::decode_view(&body).expect("decode request");
         let req = ServiceRequest::<EchoRequest>::from_parts(&view, &body);
 

@@ -2,9 +2,10 @@
 
 use std::time::Instant;
 
+use connectrpc::ConnectError;
 use connectrpc::async_trait;
 use connectrpc::interceptor::{Interceptor, Next, UnaryRequest, UnaryResponse};
-use connectrpc::ConnectError;
+use connectrpc_health::HEALTH_SERVICE_NAME;
 
 /// Logs procedure, protocol, peer, headers, and duration for each unary RPC.
 pub struct LogInterceptor;
@@ -16,8 +17,13 @@ impl Interceptor for LogInterceptor {
         req: UnaryRequest,
         next: Next<'_>,
     ) -> Result<UnaryResponse, ConnectError> {
-        let start = Instant::now();
         let procedure = req.ctx.path().unwrap_or("-").to_owned();
+        // Match the Go server: health probes are not logged.
+        if procedure.contains(HEALTH_SERVICE_NAME) {
+            return next.run(req).await;
+        }
+
+        let start = Instant::now();
         let protocol = req
             .ctx
             .protocol()

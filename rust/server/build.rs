@@ -18,7 +18,8 @@ fn main() {
     connectrpc_build::Config::new()
         .use_buf()
         .files(&["api/v1/echo.proto"])
-        .generate_json(false)
+        // Required once `connectrpc-health` enables `buffa/json` in the workspace.
+        .generate_json(true)
         .include_file("_connectrpc.rs")
         .compile()
         .expect("connectrpc-build codegen failed");

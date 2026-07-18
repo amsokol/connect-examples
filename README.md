@@ -89,7 +89,15 @@ Alternative to the Go server (same port — run only one):
 cargo run -p echo-server
 ```
 
-Serves Connect over HTTP/1.1 and h2c on `127.0.0.1:8080`. Logs unary RPCs with `tracing` (procedure, protocol, peer, Content-Type, User-Agent, duration). Rejects empty `message` with `InvalidArgument` (Go uses Protovalidate for the same rule).
+Serves Connect over HTTP/1.1 and h2c on `127.0.0.1:8080`. Logs unary RPCs with `tracing` (procedure, protocol, peer, Content-Type, User-Agent, duration). Serves [`grpc.health.v1.Health`](https://crates.io/crates/connectrpc-health) (`Serving` for `api.v1.EchoService`) for Kubernetes gRPC probes — same check as the Go server:
+
+```bash
+go tool grpc-health-probe \
+  -addr=localhost:8080 \
+  -service=api.v1.EchoService
+```
+
+Rejects empty `message` with `InvalidArgument` (Go uses Protovalidate for the same rule).
 
 ### Go client
 

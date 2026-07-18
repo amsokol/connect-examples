@@ -12,11 +12,14 @@ publish = false
 buffa = { version = "=0.8.1", default-features = false, features = [
     "std",
     "fast-utf8",
+    "json",
 ] }
 bytes = "=1.12.1"
 connectrpc = { version = "=0.8.1", default-features = false }
 connectrpc-build = "=0.8.0"
+connectrpc-health = { version = "=0.8.0", default-features = false }
 http = "=1.4.2"
+serde = { version = "=1.0.228", default-features = false, features = ["derive", "std"] }
 tokio = { version = "=1.53.0", features = [
     "macros",
     "rt-multi-thread",
