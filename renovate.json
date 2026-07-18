@@ -44,11 +44,6 @@
       "enabled": false
     },
     {
-      "description": "Ignore Connect protobuf-py transitive pins until connectrpc bumps them",
-      "matchPackageNames": ["protobuf-py", "protobuf-py-ext"],
-      "enabled": false
-    },
-    {
       "description": "Group Go module updates",
       "matchManagers": ["gomod"],
       "groupName": "go modules"
