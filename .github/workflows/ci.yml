@@ -22,12 +22,6 @@ jobs:
           go-version-file: go.mod
           cache: true
 
-      - name: Set up Buf
-        uses: bufbuild/buf-action@v1.4.0
-        with:
-          setup_only: true
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
@@ -45,23 +39,27 @@ jobs:
       - name: Cache Cargo
         uses: Swatinem/rust-cache@v2
 
-      - name: Download modules
-        run: go mod download
+      - name: Download modules and install Go tools
+        run: |
+          set -euo pipefail
+          go mod download
+          # Installs buf (and other tools) to GOPATH/bin for PATH consumers such as rust/build.rs.
+          go install tool
 
       - name: Lint Protobuf
-        run: buf lint --error-format=github-actions
+        run: go tool buf lint --error-format=github-actions
 
       - name: Check generated code is up to date
         run: |
           set -euo pipefail
-          buf generate --template buf.gen.go.yaml
-          buf generate --template buf.gen.python.yaml --include-imports
+          go tool buf generate --template buf.gen.go.yaml
+          go tool buf generate --template buf.gen.python.yaml --include-imports
           if ! git diff --exit-code -- go/api; then
-            echo "::error::Generated Go code is out of date. Run 'buf generate --template buf.gen.go.yaml' and commit the result."
+            echo "::error::Generated Go code is out of date. Run 'go tool buf generate --template buf.gen.go.yaml' and commit the result."
             exit 1
           fi
           if ! git diff --exit-code -- python/api python/buf python/__init__.py; then
-            echo "::error::Generated Python code is out of date. Run 'buf generate --template buf.gen.python.yaml --include-imports' and commit the result."
+            echo "::error::Generated Python code is out of date. Run 'go tool buf generate --template buf.gen.python.yaml --include-imports' and commit the result."
             exit 1
           fi
 

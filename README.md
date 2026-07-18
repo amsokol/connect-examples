@@ -36,10 +36,10 @@ renovate.json                  # Renovate dependency updates (2-day quarantine)
 - Go 1.26+
 - Python 3.10+
 - Rust 1.88+ (for the Rust client; [connect-rust](https://github.com/connectrpc/connect-rust) MSRV)
-- [Buf CLI](https://buf.build/docs/installation) (also required at `cargo build` time for Rust codegen)
 
-Go tools used by this repo are declared in `go.mod` and run via `go tool`:
+Go tools used by this repo are declared in `go.mod` and run via `go tool` (install binaries with `go install tool`):
 
+- `buf` — Protobuf lint / generate / `buf build` (also needed on `PATH` for Rust `build.rs`)
 - `protoc-gen-go` / `protoc-gen-connect-go` — code generation
 - `golangci-lint` — Go linting
 - `govulncheck` — dependency vulnerability scanning
@@ -47,10 +47,10 @@ Go tools used by this repo are declared in `go.mod` and run via `go tool`:
 ## Generate code
 
 ```bash
-buf dep update
-buf lint
-buf generate --template buf.gen.go.yaml
-buf generate --template buf.gen.python.yaml --include-imports
+go tool buf dep update
+go tool buf lint
+go tool buf generate --template buf.gen.go.yaml
+go tool buf generate --template buf.gen.python.yaml --include-imports
 ```
 
 `--include-imports` is required for the Python template so Protovalidate stubs land under `python/buf/validate/`.
@@ -135,7 +135,7 @@ pip install -r requirements.txt -r requirements-dev.txt
 
 ### Rust client
 
-From the repo root (Buf CLI must be on `PATH`):
+From the repo root (Buf CLI must be on `PATH`; run `go install tool` once):
 
 ```bash
 cargo run -p echo-client
@@ -154,7 +154,7 @@ The client uses [connect-rust](https://github.com/connectrpc/connect-rust) with 
 ## Lint, vulns, and test
 
 ```bash
-buf lint
+go tool buf lint
 go tool golangci-lint run ./...
 go tool govulncheck ./...
 go test ./...
@@ -168,8 +168,8 @@ cargo clippy -- -D warnings
 
 GitHub Actions (`.github/workflows/ci.yml`) runs on pushes to `main` and on pull requests:
 
-1. `buf lint`
-2. `buf generate` for Go and Python templates and fail if generated code is out of date
+1. `go tool buf lint`
+2. `go tool buf generate` for Go and Python templates and fail if generated code is out of date
 3. `go build ./...`
 4. `cargo clippy` (Rust Echo client)
 5. `go tool golangci-lint run ./...`
