@@ -161,5 +161,6 @@ GitHub Actions (`.github/workflows/ci.yml`) runs on pushes to `main` and on pull
 - **2-day** `minimumReleaseAge` quarantine for new releases
 - Security updates skip the quarantine
 - Covers Go modules, pip-compile lockfiles, and GitHub Actions
+- Python: tracks pins in `requirements*.in`; regenerates `requirements*.txt` via pip-compile (does not bump lockfile-only transitive deps)
 
 Install the [Renovate GitHub App](https://github.com/apps/renovate) on this repository to enable it.

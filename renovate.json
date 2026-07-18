@@ -24,6 +24,12 @@
       "/(^|/)requirements-dev\\.txt$/"
     ]
   },
+  "pip_requirements": {
+    "managerFilePatterns": [
+      "/(^|/)requirements\\.in$/",
+      "/(^|/)requirements-dev\\.in$/"
+    ]
+  },
   "packageRules": [
     {
       "description": "Group Go module updates",
@@ -31,15 +37,13 @@
       "groupName": "go modules"
     },
     {
-      "description": "Group Python runtime lockfile updates",
-      "matchManagers": ["pip-compile"],
-      "matchFileNames": ["requirements.txt"],
+      "description": "Group Python runtime deps (requirements.in + pip-compile lockfile)",
+      "matchFileNames": ["requirements.in", "requirements.txt"],
       "groupName": "python runtime"
     },
     {
-      "description": "Group Python dev lockfile updates",
-      "matchManagers": ["pip-compile"],
-      "matchFileNames": ["requirements-dev.txt"],
+      "description": "Group Python dev deps (requirements-dev.in + pip-compile lockfile)",
+      "matchFileNames": ["requirements-dev.in", "requirements-dev.txt"],
       "groupName": "python dev"
     },
     {
