@@ -1,0 +1,19 @@
+[package]
+name = "echo-client"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+description = "Connect Echo client (connect-rust)"
+
+[[bin]]
+name = "echo-client"
+path = "src/main.rs"
+
+[dependencies]
+buffa = { workspace = true }
+connectrpc = { workspace = true }
+tokio = { workspace = true }
+
+[build-dependencies]
+connectrpc-build = { workspace = true }

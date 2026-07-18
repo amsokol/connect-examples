@@ -37,6 +37,14 @@ jobs:
             requirements.txt
             requirements-dev.txt
 
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@v2
+
       - name: Download modules
         run: go mod download
 
@@ -59,6 +67,11 @@ jobs:
 
       - name: Build
         run: go build ./...
+
+      - name: Build and lint Rust
+        run: |
+          set -euo pipefail
+          cargo clippy --locked -- -D warnings
 
       - name: Lint Go
         run: go tool golangci-lint run --issues-exit-code=1 ./...

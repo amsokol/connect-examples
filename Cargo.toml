@@ -1,0 +1,20 @@
+[workspace]
+resolver = "2"
+members = ["rust"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.97.1"
+publish = false
+
+[workspace.dependencies]
+buffa = { version = "=0.8.1", default-features = false, features = [
+    "std",
+    "fast-utf8",
+] }
+connectrpc = { version = "=0.8.1", default-features = false, features = [
+    "client",
+] }
+connectrpc-build = "=0.8.0"
+tokio = { version = "1.53.0", features = ["macros", "rt-multi-thread", "time"] }

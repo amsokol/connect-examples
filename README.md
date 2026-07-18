@@ -1,6 +1,6 @@
 # connect-examples
 
-Examples of [Connect](https://connectrpc.com/) RPC services in Go and Python.
+Examples of [Connect](https://connectrpc.com/) RPC services in Go, Python, and Rust.
 
 The first example is a small **Echo** service: Protobuf edition 2024, Protovalidate, opaque Go APIs, and clients/servers that speak the Connect protocol over HTTP/1.1 and HTTP/2 cleartext (h2c).
 
@@ -14,6 +14,8 @@ go/echo/cmd/client/            # Go Echo client (h2c + retry interceptor)
 python/api/v1/                 # generated Python Protobuf + Connect code
 python/buf/validate/           # generated Protovalidate stubs (via --include-imports)
 python/echo/client/            # Python Echo client (retry interceptor)
+Cargo.toml                     # Rust workspace root
+rust/                          # Rust Echo client ([connect-rust](https://github.com/connectrpc/connect-rust))
 requirements.in                # Python dependency pins (source)
 requirements.txt               # locked Python deps (pip-compile)
 requirements-dev.in            # Python dev tools (ruff, pip-audit)
@@ -33,7 +35,8 @@ renovate.json                  # Renovate dependency updates (2-day quarantine)
 
 - Go 1.26+
 - Python 3.10+
-- [Buf CLI](https://buf.build/docs/installation)
+- Rust 1.88+ (for the Rust client; [connect-rust](https://github.com/connectrpc/connect-rust) MSRV)
+- [Buf CLI](https://buf.build/docs/installation) (also required at `cargo build` time for Rust codegen)
 
 Go tools used by this repo are declared in `go.mod` and run via `go tool`:
 
@@ -55,6 +58,8 @@ buf generate --template buf.gen.python.yaml --include-imports
 Generated Go files land in `go/api/v1/` (`echo.pb.go` and `echo.connect.go` in the same `apiv1` package).
 
 Generated Python files land in `python/api/v1/` (`echo_pb.py` and `echo_connect.py`).
+
+Rust codegen runs from `rust/build.rs` via [`connectrpc-build`](https://crates.io/crates/connectrpc-build) (`buf build` → buffa/connect stubs into `$OUT_DIR`). No checked-in generated Rust sources.
 
 ## Run the Echo example
 
@@ -124,6 +129,24 @@ pip-compile requirements-dev.in -o requirements-dev.txt
 pip install -r requirements.txt -r requirements-dev.txt
 ```
 
+### Rust client
+
+From the repo root (Buf CLI must be on `PATH`):
+
+```bash
+cargo run -p echo-client
+```
+
+Expected output:
+
+```text
+Hello, Jane!
+```
+
+The client uses [connect-rust](https://github.com/connectrpc/connect-rust) with `HttpClient::plaintext_http2_only()` (h2c), matching the Go client. For HTTP/1.1, switch to `HttpClient::plaintext()` in `rust/src/main.rs`.
+
+`rust/src/retry.rs` retries `Unavailable` / `ResourceExhausted` (including dial/transport failures mapped to `Unavailable`) with the same 5-attempt exponential backoff.
+
 ## Lint, vulns, and test
 
 ```bash
@@ -134,6 +157,7 @@ go test ./...
 ruff check python
 ruff format --check python/echo
 pip-audit -r requirements.txt -r requirements-dev.txt
+cargo clippy -- -D warnings
 ```
 
 ## CI
@@ -143,10 +167,11 @@ GitHub Actions (`.github/workflows/ci.yml`) runs on pushes to `main` and on pull
 1. `buf lint`
 2. `buf generate` for Go and Python templates and fail if generated code is out of date
 3. `go build ./...`
-4. `go tool golangci-lint run ./...`
-5. `ruff check` / `ruff format --check` (Python)
-6. `go tool govulncheck ./...` and `pip-audit` on `requirements.txt` / `requirements-dev.txt`
-7. `go test ./...`
+4. `cargo clippy` (Rust Echo client)
+5. `go tool golangci-lint run ./...`
+6. `ruff check` / `ruff format --check` (Python)
+7. `go tool govulncheck ./...` and `pip-audit` on `requirements.txt` / `requirements-dev.txt`
+8. `go test ./...`
 
 ## Notes
 
@@ -155,6 +180,7 @@ GitHub Actions (`.github/workflows/ci.yml`) runs on pushes to `main` and on pull
 - Connect Go codegen uses `package_suffix=` so handlers/clients live next to the `.pb.go` types.
 - Python uses [connectrpc](https://pypi.org/project/connectrpc/) with [protobuf-py](https://protobufpy.com) (Buf `bufbuild/py` + `connectrpc/py` plugins).
 - Python pins in `requirements*.in` use exact `==` versions so Renovate bumps are explicit.
+- Rust uses a Cargo workspace (`Cargo.toml` at the repo root); crate pins live in `[workspace.dependencies]`. Codegen is via `rust/build.rs` + Buf (not checked-in stubs).
 
 ## Dependency updates (Renovate)
 
@@ -162,7 +188,8 @@ GitHub Actions (`.github/workflows/ci.yml`) runs on pushes to `main` and on pull
 
 - **2-day** `minimumReleaseAge` quarantine for new releases
 - Security updates skip the quarantine
-- Covers Go modules, pip-compile lockfiles, and GitHub Actions
+- Covers Go modules, Cargo crates, pip-compile lockfiles, and GitHub Actions
 - Python: tracks pins in `requirements*.in`; regenerates `requirements*.txt` via pip-compile (does not bump lockfile-only transitive deps)
+- Rust: `buffa` is capped at `<0.9.0` until `connectrpc` supports it; `connectrpc*` + `buffa*` update as one **connect-rust** group
 
 Install the [Renovate GitHub App](https://github.com/apps/renovate) on this repository to enable it.
