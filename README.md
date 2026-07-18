@@ -23,6 +23,7 @@ buf.yaml                       # Buf lint config
 buf.gen.go.yaml                # Go codegen
 buf.gen.python.yaml            # Python codegen (use with --include-imports)
 .golangci.yaml                 # golangci-lint v2
+renovate.json                  # Renovate dependency updates (2-day quarantine)
 .github/workflows/ci.yml       # CI: buf, build, lint, vulns, test
 ```
 
@@ -151,3 +152,14 @@ GitHub Actions (`.github/workflows/ci.yml`) runs on pushes to `main` and on pull
 - Go Protobuf uses the **opaque** API (`features.(pb.go).api_level = API_OPAQUE`).
 - Connect Go codegen uses `package_suffix=` so handlers/clients live next to the `.pb.go` types.
 - Python uses [connectrpc](https://pypi.org/project/connectrpc/) with [protobuf-py](https://protobufpy.com) (Buf `bufbuild/py` + `connectrpc/py` plugins).
+- Python pins in `requirements*.in` use exact `==` versions so Renovate bumps are explicit.
+
+## Dependency updates (Renovate)
+
+[Renovate](https://docs.renovatebot.com/) is configured in `renovate.json`:
+
+- **2-day** `minimumReleaseAge` quarantine for new releases
+- Security updates skip the quarantine
+- Covers Go modules, pip-compile lockfiles, and GitHub Actions
+
+Install the [Renovate GitHub App](https://github.com/apps/renovate) on this repository to enable it.

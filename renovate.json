@@ -1,0 +1,51 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":dependencyDashboard",
+    ":semanticCommits",
+    ":semanticCommitTypeAll(chore)"
+  ],
+  "labels": ["dependencies"],
+  "rangeStrategy": "pin",
+  "minimumReleaseAge": "2 days",
+  "minimumReleaseAgeBehaviour": "timestamp-required",
+  "internalChecksFilter": "strict",
+  "prCreation": "not-pending",
+  "postUpdateOptions": ["gomodTidy"],
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "labels": ["security"],
+    "minimumReleaseAge": null
+  },
+  "pip-compile": {
+    "managerFilePatterns": [
+      "/(^|/)requirements\\.txt$/",
+      "/(^|/)requirements-dev\\.txt$/"
+    ]
+  },
+  "packageRules": [
+    {
+      "description": "Group Go module updates",
+      "matchManagers": ["gomod"],
+      "groupName": "go modules"
+    },
+    {
+      "description": "Group Python runtime lockfile updates",
+      "matchManagers": ["pip-compile"],
+      "matchFileNames": ["requirements.txt"],
+      "groupName": "python runtime"
+    },
+    {
+      "description": "Group Python dev lockfile updates",
+      "matchManagers": ["pip-compile"],
+      "matchFileNames": ["requirements-dev.txt"],
+      "groupName": "python dev"
+    },
+    {
+      "description": "Group GitHub Actions updates",
+      "matchManagers": ["github-actions"],
+      "groupName": "github actions"
+    }
+  ]
+}
