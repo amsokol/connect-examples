@@ -15,7 +15,7 @@ python/api/v1/                 # generated Python Protobuf + Connect code
 python/buf/validate/           # generated Protovalidate stubs (via --include-imports)
 python/echo/client/            # Python Echo client (retry interceptor)
 Cargo.toml                     # Rust workspace root
-rust/                          # Rust Echo client ([connect-rust](https://github.com/connectrpc/connect-rust))
+rust/client/                   # Rust Echo client ([connect-rust](https://github.com/connectrpc/connect-rust))
 requirements.in                # Python dependency pins (source)
 requirements.txt               # locked Python deps (pip-compile)
 requirements-dev.in            # Python dev tools (ruff, pip-audit)
@@ -59,7 +59,7 @@ Generated Go files land in `go/api/v1/` (`echo.pb.go` and `echo.connect.go` in t
 
 Generated Python files land in `python/api/v1/` (`echo_pb.py` and `echo_connect.py`).
 
-Rust codegen runs from `rust/build.rs` via [`connectrpc-build`](https://crates.io/crates/connectrpc-build) (`buf build` → buffa/connect stubs into `$OUT_DIR`). No checked-in generated Rust sources.
+Rust codegen runs from `rust/client/build.rs` via [`connectrpc-build`](https://crates.io/crates/connectrpc-build) (`buf build` → buffa/connect stubs into `$OUT_DIR`). No checked-in generated Rust sources.
 
 ## Run the Echo example
 
@@ -145,9 +145,9 @@ Expected output:
 Hello, Jane!
 ```
 
-The client uses [connect-rust](https://github.com/connectrpc/connect-rust) with `HttpClient::plaintext_http2_only()` (h2c), matching the Go client. For HTTP/1.1, switch to `HttpClient::plaintext()` in `rust/src/main.rs`.
+The client uses [connect-rust](https://github.com/connectrpc/connect-rust) with `HttpClient::plaintext_http2_only()` (h2c), matching the Go client. For HTTP/1.1, switch to `HttpClient::plaintext()` in `rust/client/src/main.rs`.
 
-`rust/src/retry.rs` retries `Unavailable` / `ResourceExhausted` (including dial/transport failures mapped to `Unavailable`) with the same 5-attempt exponential backoff.
+`rust/client/src/retry.rs` retries `Unavailable` / `ResourceExhausted` (including dial/transport failures mapped to `Unavailable`) with the same 5-attempt exponential backoff.
 
 ## Lint, vulns, and test
 
@@ -182,7 +182,7 @@ GitHub Actions (`.github/workflows/ci.yml`) runs on pushes to `main` and on pull
 - Connect Go codegen uses `package_suffix=` so handlers/clients live next to the `.pb.go` types.
 - Python uses [connectrpc](https://pypi.org/project/connectrpc/) with [protobuf-py](https://protobufpy.com) (Buf `bufbuild/py` + `connectrpc/py` plugins).
 - Python pins in `requirements*.in` use exact `==` versions so Renovate bumps are explicit.
-- Rust uses a Cargo workspace (`Cargo.toml` at the repo root); crate pins live in `[workspace.dependencies]`. Codegen is via `rust/build.rs` + Buf (not checked-in stubs).
+- Rust uses a Cargo workspace (`Cargo.toml` at the repo root); crate pins live in `[workspace.dependencies]`. Codegen is via `rust/client/build.rs` + Buf (not checked-in stubs).
 
 ## Dependency updates (Renovate)
 
