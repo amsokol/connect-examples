@@ -4,8 +4,9 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
+	"os"
 	"time"
 
 	"connectrpc.com/connect"
@@ -27,14 +28,17 @@ func (*EchoServer) Echo(_ context.Context, req *apiv1.EchoRequest) (*apiv1.EchoR
 }
 
 func main() {
+	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
+
 	echo := &EchoServer{}
 	mux := http.NewServeMux()
 	path, handler := apiv1.NewEchoServiceHandler(
 		echo,
-		// Validation via Protovalidate is almost always recommended
-		connect.WithInterceptors(validate.NewInterceptor()),
+		// Validation via Protovalidate is almost always recommended.
+		// Log interceptor is outermost so rejected requests are still logged.
+		connect.WithInterceptors(newLogInterceptor(logger), validate.NewInterceptor()),
 	)
-	mux.Handle(path, handler)
+	mux.Handle(path, withHTTPProto(handler))
 
 	var protocols http.Protocols
 
@@ -50,6 +54,7 @@ func main() {
 	}
 
 	if err := s.ListenAndServe(); err != nil {
-		log.Fatal(err)
+		logger.ErrorContext(context.Background(), "server failed", "err", err)
+		os.Exit(1)
 	}
 }

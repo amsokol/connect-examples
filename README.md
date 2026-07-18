@@ -71,6 +71,8 @@ Terminal 1 — server (HTTP/1.1 + h2c on `:8080`):
 go run ./go/echo/cmd/server
 ```
 
+The server logs each unary RPC with `log/slog` (procedure, Connect/gRPC protocol, HTTP version, peer address, method, Content-Type, User-Agent, duration, and error code if any).
+
 ### Go client
 
 Terminal 2 — client (Connect protocol over h2c):
