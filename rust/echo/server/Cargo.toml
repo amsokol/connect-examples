@@ -11,11 +11,12 @@ name = "echo-server"
 path = "src/main.rs"
 
 [dependencies]
-buffa = { workspace = true }
 api = { workspace = true }
+buffa = { workspace = true }
 connectrpc = { workspace = true, features = ["server", "gzip", "json"] }
 connectrpc-health = { workspace = true }
 http = { workspace = true }
+mimalloc = { workspace = true }
 serde = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }

@@ -1,10 +1,6 @@
 [workspace]
 resolver = "2"
-members = [
-    "rust/api",
-    "rust/echo/client",
-    "rust/echo/server",
-]
+members = ["rust/api", "rust/echo/client", "rust/echo/server"]
 
 [workspace.package]
 version = "0.1.0"
@@ -23,7 +19,11 @@ api = { path = "rust/api" }
 connectrpc = { version = "=0.8.1", default-features = false }
 connectrpc-health = { version = "=0.8.0", default-features = false }
 http = "=1.4.2"
-serde = { version = "=1.0.228", default-features = false, features = ["derive", "std"] }
+mimalloc = { git = "https://github.com/amsokol/mimalloc", tag = "v3.3.2" }
+serde = { version = "=1.0.228", default-features = false, features = [
+    "derive",
+    "std",
+] }
 tokio = { version = "=1.53.0", features = [
     "macros",
     "rt-multi-thread",

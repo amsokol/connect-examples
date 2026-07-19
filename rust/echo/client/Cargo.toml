@@ -11,8 +11,9 @@ name = "echo-client"
 path = "src/main.rs"
 
 [dependencies]
-buffa = { workspace = true }
 api = { workspace = true }
+buffa = { workspace = true }
 connectrpc = { workspace = true, features = ["client", "json"] }
+mimalloc = { workspace = true }
 serde = { workspace = true }
 tokio = { workspace = true }

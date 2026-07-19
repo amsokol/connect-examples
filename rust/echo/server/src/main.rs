@@ -1,14 +1,14 @@
 //! Connect Echo service server over HTTP/1.1 and h2c.
 
+use mimalloc::MiMalloc;
+
 mod log;
 
 use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Duration;
 
-use api::v1::{
-    ECHO_SERVICE_SERVICE_NAME, EchoRequest, EchoResponse, EchoService, EchoServiceExt,
-};
+use api::v1::{ECHO_SERVICE_SERVICE_NAME, EchoRequest, EchoResponse, EchoService, EchoServiceExt};
 use connectrpc::{
     ConnectError, ConnectRpcService, RequestContext, Response, Router, Server, ServiceRequest,
     ServiceResult,
@@ -16,6 +16,9 @@ use connectrpc::{
 use connectrpc_health::install_static;
 use log::LogInterceptor;
 use tracing_subscriber::EnvFilter;
+
+#[global_allocator]
+static GLOBAL: MiMalloc = MiMalloc;
 
 /// Echo service implementation.
 struct EchoServer;

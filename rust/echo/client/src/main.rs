@@ -1,9 +1,14 @@
 //! Connect client for the Echo service over HTTP/2 cleartext (h2c).
 
+use mimalloc::MiMalloc;
+
 mod retry;
 
 use api::v1::{EchoRequest, EchoServiceClient};
 use connectrpc::client::{ClientConfig, HttpClient};
+
+#[global_allocator]
+static GLOBAL: MiMalloc = MiMalloc;
 
 #[tokio::main]
 async fn main() {
