@@ -30,6 +30,19 @@
       "/(^|/)requirements-dev\\.in$/"
     ]
   },
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Update rules_buf prebuilt Buf CLI pin (buf.toolchains)",
+      "managerFilePatterns": ["/(^|/)MODULE\\.bazel$/"],
+      "matchStrings": [
+        "buf\\.toolchains\\(\\s*version\\s*=\\s*\"(?<currentValue>v?[0-9][^\"\\s]*)\"\\s*\\)"
+      ],
+      "datasourceTemplate": "github-releases",
+      "depNameTemplate": "bufbuild/buf",
+      "packageNameTemplate": "bufbuild/buf"
+    }
+  ],
   "packageRules": [
     {
       "description": "Do not manage compiled lockfiles via pip_requirements (only .in pins)",
