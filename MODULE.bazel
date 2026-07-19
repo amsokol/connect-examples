@@ -9,6 +9,15 @@ module(
 
 bazel_dep(name = "bazel_lib", version = "3.5.0")
 bazel_dep(name = "gazelle", version = "0.51.3")
+bazel_dep(name = "rules_buf", version = "0.5.4")
 bazel_dep(name = "rules_go", version = "0.61.1")
+bazel_dep(name = "rules_python", version = "2.2.0")
+
+# Prebuilt Buf CLI (buf cannot be built via go_deps — bufprivateusage guard).
+# Local protoc plugins are go_binary aliases under //bazel.
+buf = use_extension("@rules_buf//buf:extensions.bzl", "buf")
+buf.toolchains(version = "v1.72.0")
+use_repo(buf, "rules_buf_toolchains")
 
 include("//:go.MODULE.bazel")
+include("//:python.MODULE.bazel")

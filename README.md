@@ -48,24 +48,16 @@ Go tools used by this repo are declared in `go.mod` and run via `go tool` (insta
 ## Generate code
 
 ```bash
-go tool buf lint
+bazel test //api/v1:lint
+bazel run //api/v1:generate
 ```
 
-### Go
+`//api/v1:lint` runs hermetic `buf lint` (pins from `buf.lock`). Generation updates checked-in stubs for both languages:
 
-```bash
-bazel run //api/v1:generate_go
-```
+- Go → `go/api/v1/` (`echo.pb.go` and `echo.connect.go` in the same `apiv1` package)
+- Python → `python/gen/` (`api/` + `buf/`)
 
-Generated Go files land in `go/api/v1/` (`echo.pb.go` and `echo.connect.go` in the same `apiv1` package). Details: [Bazel](#bazel).
-
-### Python
-
-```bash
-bazel run //api/v1:generate_python
-```
-
-Generated tree lands in `python/gen/` (`api/` + `buf/`). Details: [Bazel](#bazel).
+Details: [Bazel](#bazel).
 
 ### Rust
 
@@ -73,34 +65,43 @@ Rust codegen runs from each crate's `build.rs` (`rust/client`, `rust/server`) vi
 
 ## Bazel
 
-Requires [Bazel](https://bazel.build/) / [Bazelisk](https://github.com/bazelbuild/bazelisk) (version pinned in `.bazeliskrc`). Go SDK and module deps come from `go.mod` via `rules_go` (`go.MODULE.bazel`).
+Requires [Bazel](https://bazel.build/) / [Bazelisk](https://github.com/bazelbuild/bazelisk) (version pinned in `.bazeliskrc`). Go SDK and module deps come from `go.mod` via `rules_go` (`go.MODULE.bazel`). Python toolchain and pip deps come from `requirements.txt` via `rules_python` (`python.MODULE.bazel`). Buf CLI is the prebuilt binary from `rules_buf`; Go plugins are `go_binary` tools (a PATH `go` shim satisfies `local: [go, tool, …]` in `buf.gen.go.yaml`). BSR pins stay in `buf.lock` only.
 
-### 1. Generation
-
-Hermetic `go tool buf generate` into `bazel-out`, then copy into the source tree:
+### 1. Lint
 
 ```bash
-bazel run //api/v1:generate_go
-bazel run //api/v1:generate_python
+bazel test //api/v1:lint
 ```
 
-Each builds its `buf_generate` dependency (`:go` / `:python`), then `write_source_files` updates the checked-in stubs. No `buf dep update`; pins stay in `buf.lock` / `go.sum`.
+Hermetic `buf lint` with `buf.yaml` + `buf.lock`.
 
-### 2. Build
+### 2. Generation
+
+Hermetic `buf generate` into `bazel-out`, then copy into the source tree:
+
+```bash
+bazel run //api/v1:generate
+```
+
+Builds both `buf_generate` deps (`:go` / `:python`), then one `write_source_files` updates the checked-in stubs. Go plugins come from `//bazel:protoc-gen-*` (built once). No `buf dep update`; pins stay in `buf.lock` / `go.sum`.
+
+### 3. Build
 
 ```bash
 bazel build //api/v1:go //api/v1:python
+bazel build //go/echo/cmd/server:server //go/echo/cmd/client:client
+bazel build //python/echo/client:client
 ```
 
-Hermetic generated trees under `.bazel/bin/api/v1/{go,python}/`.
+Hermetic generated trees under `.bazel/bin/api/v1/{go,python}/`. Go and Python apps use checked-in stubs (`//go/api:apiv1`, `//python:gen_py`) plus module/pip deps from `go.MODULE.bazel` / `python.MODULE.bazel`.
 
-### 3. Test
+### 4. Test
 
 ```bash
-bazel test //api/v1:generate_go_test //api/v1:generate_python_test
+bazel test //api/v1:lint //api/v1:generate_tests //go/...
 ```
 
-Fails if checked-in stubs are out of date. Re-run generation (step 1) and commit if needed.
+`generate_tests` fails if checked-in stubs are out of date. Re-run generation (step 2) and commit if needed.
 
 ## Run the Echo example
 
@@ -170,7 +171,13 @@ The Go client builds one shared `http.Client` with `http2.Transport` (h2c). Reus
 
 ### Python client
 
-From the repo root:
+Bazel (toolchain + pip from `python.MODULE.bazel` / `requirements.txt`):
+
+```bash
+bazel run //python/echo/client
+```
+
+Or with a local venv:
 
 ```bash
 python3 -m venv python/.venv
@@ -219,7 +226,7 @@ The client uses [connect-rust](https://github.com/connectrpc/connect-rust) with 
 ## Lint, vulns, and test
 
 ```bash
-go tool buf lint
+bazel test //api/v1:lint
 go tool golangci-lint run ./...
 go tool govulncheck ./...
 go test ./...
@@ -232,7 +239,15 @@ cargo test -p echo-server
 
 ## CI
 
-GitHub Actions (`.github/workflows/ci.yml`) runs on pushes to `main` and on pull requests:
+GitHub Actions (`.github/workflows/ci.yml`) runs two jobs in parallel on pushes to `main` and on pull requests:
+
+**Bazel** — runs in `eclipse-temurin:25-jdk` with Bazelisk installed as `bazel` (version from `.bazeliskrc`):
+
+1. Generate — `bazel test //api/v1:lint //api/v1:generate_tests` and `bazel build //api/v1:go //api/v1:python`
+2. Build — Go/Python Echo binaries
+3. Test — `bazel test //go/...`
+
+**Native** — Go / Python / Rust toolchains without Bazel:
 
 1. `go tool buf lint`
 2. `go tool buf generate` for Go and Python templates and fail if generated code is out of date

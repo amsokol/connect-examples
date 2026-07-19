@@ -1,2 +1,27 @@
-# Destination marker for //api/v1:generate_python → python/gen.
+load("@pip//:requirements.bzl", "requirement")
+load("@rules_python//python:defs.bzl", "py_library")
+
+# Destination for //api/v1:generate → python/gen (directory sync).
 exports_files(["gen"])
+
+# Workspace-root imports so `python.gen...` / `python.echo...` resolve.
+_IMPORTS = [".."]
+
+py_library(
+    name = "python_pkg",
+    srcs = ["__init__.py"],
+    imports = _IMPORTS,
+    visibility = ["//visibility:public"],
+)
+
+py_library(
+    name = "gen_py",
+    srcs = glob(["gen/**/*.py"]),
+    imports = _IMPORTS,
+    visibility = ["//visibility:public"],
+    deps = [
+        ":python_pkg",
+        requirement("connectrpc"),
+        requirement("protobuf-py"),
+    ],
+)

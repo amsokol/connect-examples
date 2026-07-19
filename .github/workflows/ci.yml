@@ -9,8 +9,43 @@ permissions:
   contents: read
 
 jobs:
-  build-lint-test:
-    name: Build, lint, test
+  bazel:
+    name: Bazel (generate, build, test)
+    runs-on: ubuntu-latest
+    container:
+      image: eclipse-temurin:25-jdk
+    steps:
+      - name: Install Bazelisk
+        run: |
+          set -euo pipefail
+          apt-get update
+          apt-get install -y --no-install-recommends ca-certificates curl git unzip zip
+          curl -fsSL -o /usr/local/bin/bazel \
+            "https://github.com/bazelbuild/bazelisk/releases/download/v${BAZELISK_VERSION}/bazelisk-linux-amd64"
+          chmod +x /usr/local/bin/bazel
+          bazel version
+        env:
+          BAZELISK_VERSION: "1.29.0"
+
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Generate
+        run: |
+          set -euo pipefail
+          bazel test //api/v1:lint //api/v1:generate_tests
+          bazel build //api/v1:go //api/v1:python
+
+      - name: Build
+        run: |
+          set -euo pipefail
+          bazel build //...
+
+      - name: Test
+        run: bazel test //...
+
+  native:
+    name: Native (Go, Python, Rust)
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -61,11 +96,11 @@ jobs:
             fi
           done
           if ! git diff --exit-code -- go/api; then
-            echo "::error::Generated Go code is out of date. Run 'go tool buf generate --template buf.gen.go.yaml' and commit the result."
+            echo "::error::Generated Go code is out of date. Run 'go tool buf generate --template buf.gen.go.yaml' (or 'bazel run //api/v1:generate') and commit the result."
             exit 1
           fi
           if ! git diff --exit-code -- python/gen; then
-            echo "::error::Generated Python code is out of date. Run 'bazel run //api/v1:generate_python' (or 'go tool buf generate --template buf.gen.python.yaml --include-imports') and commit the result."
+            echo "::error::Generated Python code is out of date. Run 'go tool buf generate --template buf.gen.python.yaml --include-imports' (or 'bazel run //api/v1:generate') and commit the result."
             exit 1
           fi
 

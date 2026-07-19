@@ -1,0 +1,29 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library", "go_test")
+
+go_library(
+    name = "client_lib",
+    srcs = [
+        "main.go",
+        "retry.go",
+    ],
+    importpath = "github.com/amsokol/connect-examples/go/echo/cmd/client",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//go/api:apiv1",
+        "@com_connectrpc_connect//:connect",
+        "@org_golang_x_net//http2",
+    ],
+)
+
+go_binary(
+    name = "client",
+    embed = [":client_lib"],
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "client_test",
+    size = "small",
+    srcs = ["retry_test.go"],
+    embed = [":client_lib"],
+)

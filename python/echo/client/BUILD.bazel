@@ -1,0 +1,33 @@
+load("@pip//:requirements.bzl", "requirement")
+load("@rules_python//python:defs.bzl", "py_binary", "py_library")
+
+_IMPORTS = ["../../.."]
+
+py_library(
+    name = "client_lib",
+    srcs = [
+        "__init__.py",
+        "retry.py",
+    ],
+    imports = _IMPORTS,
+    visibility = ["//visibility:private"],
+    deps = [
+        "//python/echo",
+        "//python:gen_py",
+        requirement("connectrpc"),
+    ],
+)
+
+py_binary(
+    name = "client",
+    srcs = ["__main__.py"],
+    imports = _IMPORTS,
+    legacy_create_init = False,
+    main = "__main__.py",
+    visibility = ["//visibility:public"],
+    deps = [
+        ":client_lib",
+        requirement("connectrpc"),
+        requirement("pyqwest"),
+    ],
+)

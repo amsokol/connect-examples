@@ -1,35 +1,36 @@
 load("@bazel_lib//lib:write_source_files.bzl", "write_source_files")
-load("//bazel:buf_generate.bzl", "buf_generate")
+load("//bazel:buf.bzl", "buf_generate", "buf_lint_test")
+
+buf_lint_test(
+    name = "lint",
+    size = "small",
+    srcs = glob(["*.proto"]),
+)
 
 buf_generate(
     name = "go",
-    srcs = ["echo.proto"],
+    srcs = glob(["*.proto"]),
     outdir = "go",
+    plugins = [
+        "//bazel:protoc-gen-go",
+        "//bazel:protoc-gen-connect-go",
+    ],
     template = "//:buf.gen.go.yaml",
-)
-
-write_source_files(
-    name = "generate_go",
-    check_that_out_file_exists = False,
-    files = {
-        # Label package+name → workspace path go/api/v1 (not a real target).
-        "//go/api:v1": ":go",
-    },
 )
 
 buf_generate(
     name = "python",
-    srcs = ["echo.proto"],
+    srcs = glob(["*.proto"]),
     include_imports = True,
     outdir = "python/gen",
     template = "//:buf.gen.python.yaml",
 )
 
 write_source_files(
-    name = "generate_python",
+    name = "generate",
     check_that_out_file_exists = False,
     files = {
-        # Full generated tree (api/ + buf/) → python/gen.
+        "//go/api:v1": ":go",
         "//python:gen": ":python",
     },
 )

@@ -1,2 +1,18 @@
-# Destination package marker for //api/v1:generate_go → go/api/v1.
+load("@rules_go//go:def.bzl", "go_library")
+
+# Destination for //api/v1:generate → go/api/v1 (directory sync).
 exports_files(["v1"])
+
+go_library(
+    name = "apiv1",
+    srcs = glob(["v1/*.go"]),
+    importpath = "github.com/amsokol/connect-examples/go/api/v1",
+    visibility = ["//visibility:public"],
+    deps = [
+        "@build_buf_gen_go_bufbuild_protovalidate_protocolbuffers_go//buf/validate",
+        "@com_connectrpc_connect//:connect",
+        "@org_golang_google_protobuf//reflect/protoreflect",
+        "@org_golang_google_protobuf//runtime/protoimpl",
+        "@org_golang_google_protobuf//types/gofeaturespb",
+    ],
+)
