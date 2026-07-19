@@ -31,7 +31,7 @@ class EchoRequest(Message[_EchoRequestFields]):
     Attributes:
         message:
             ```proto
-            optional string message = 11;
+            optional string message = 1;
             ```
     """
 
@@ -80,7 +80,7 @@ class EchoResponse(Message[_EchoResponseFields]):
 
 
 _DESC = file_desc(
-    b'\n\x11api/v1/echo.proto\x12\x06api.v1\x1a!google/protobuf/go_features.proto\x1a\x1bbuf/validate/validate.proto"3\n\x0bEchoRequest\x12$\n\x07message\x18\x0b \x01(\tR\x07messageB\n\xbaH\x07\xc8\x01\x01r\x02\x10\x01"(\n\x0cEchoResponse\x12\x18\n\x07message\x18\x01 \x01(\tR\x07message2B\n\x0bEchoService\x123\n\x04Echo\x12\x13.api.v1.EchoRequest\x1a\x14.api.v1.EchoResponse"\x00B=Z3github.com/amsokol/connect-examples/go/api/v1;apiv1\x92\x03\x05\xd2>\x02\x10\x03b\x08editionsp\xe9\x07',
+    b'\n\x11api/v1/echo.proto\x12\x06api.v1\x1a!google/protobuf/go_features.proto\x1a\x1bbuf/validate/validate.proto"3\n\x0bEchoRequest\x12$\n\x07message\x18\x01 \x01(\tR\x07messageB\n\xbaH\x07\xc8\x01\x01r\x02\x10\x01"(\n\x0cEchoResponse\x12\x18\n\x07message\x18\x01 \x01(\tR\x07message2B\n\x0bEchoService\x123\n\x04Echo\x12\x13.api.v1.EchoRequest\x1a\x14.api.v1.EchoResponse"\x00B=Z3github.com/amsokol/connect-examples/go/api/v1;apiv1\x92\x03\x05\xd2>\x02\x10\x03b\x08editionsp\xe9\x07',
     [
         go_features_pb.desc(),
         validate_pb.desc(),

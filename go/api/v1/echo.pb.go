@@ -25,7 +25,7 @@ const (
 // EchoRequest is the request message for EchoService.Echo.
 type EchoRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Message     *string                `protobuf:"bytes,11,opt,name=message"`
+	xxx_hidden_Message     *string                `protobuf:"bytes,1,opt,name=message"`
 	XXX_raceDetectHookData protoimpl.RaceDetectHookData
 	XXX_presence           [1]uint32
 	unknownFields          protoimpl.UnknownFields
@@ -186,7 +186,7 @@ const file_api_v1_echo_proto_rawDesc = "" +
 	"\n" +
 	"\x11api/v1/echo.proto\x12\x06api.v1\x1a!google/protobuf/go_features.proto\x1a\x1bbuf/validate/validate.proto\"3\n" +
 	"\vEchoRequest\x12$\n" +
-	"\amessage\x18\v \x01(\tB\n" +
+	"\amessage\x18\x01 \x01(\tB\n" +
 	"\xbaH\a\xc8\x01\x01r\x02\x10\x01R\amessage\"(\n" +
 	"\fEchoResponse\x12\x18\n" +
 	"\amessage\x18\x01 \x01(\tR\amessage2B\n" +
