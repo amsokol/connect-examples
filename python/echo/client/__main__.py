@@ -8,9 +8,9 @@ import sys
 from connectrpc.errors import ConnectError
 from pyqwest import HTTPVersion, SyncClient, SyncHTTPTransport
 
+from python.echo.client.retry import RetryInterceptor
 from python.gen.api.v1.echo_connect import EchoServiceClientSync
 from python.gen.api.v1.echo_pb import EchoRequest
-from python.echo.client.retry import RetryInterceptor
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 log = logging.getLogger(__name__)
