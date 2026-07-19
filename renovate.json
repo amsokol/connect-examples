@@ -52,6 +52,90 @@
       "datasourceTemplate": "github-releases",
       "depNameTemplate": "bazelbuild/bazelisk",
       "packageNameTemplate": "bazelbuild/bazelisk"
+    },
+    {
+      "customType": "regex",
+      "description": "BSR remote plugin pins in buf.gen.*.yaml (→ GitHub releases)",
+      "managerFilePatterns": ["/(^|/)buf\\.gen\\.(go|python|rust)\\.yaml$/"],
+      "matchStrings": [
+        "remote:\\s+buf\\.build/protocolbuffers/go:(?<currentValue>v[^\\s]+)"
+      ],
+      "datasourceTemplate": "github-releases",
+      "depNameTemplate": "buf.build/protocolbuffers/go",
+      "packageNameTemplate": "protocolbuffers/protobuf-go",
+      "versioningTemplate": "semver"
+    },
+    {
+      "customType": "regex",
+      "description": "BSR connectrpc/go plugin pin",
+      "managerFilePatterns": ["/(^|/)buf\\.gen\\.go\\.yaml$/"],
+      "matchStrings": [
+        "remote:\\s+buf\\.build/connectrpc/go:(?<currentValue>v[^\\s]+)"
+      ],
+      "datasourceTemplate": "github-releases",
+      "depNameTemplate": "buf.build/connectrpc/go",
+      "packageNameTemplate": "connectrpc/connect-go",
+      "versioningTemplate": "semver"
+    },
+    {
+      "customType": "regex",
+      "description": "BSR bufbuild/py plugin pin",
+      "managerFilePatterns": ["/(^|/)buf\\.gen\\.python\\.yaml$/"],
+      "matchStrings": [
+        "remote:\\s+buf\\.build/bufbuild/py:(?<currentValue>v[^\\s]+)"
+      ],
+      "datasourceTemplate": "github-releases",
+      "depNameTemplate": "buf.build/bufbuild/py",
+      "packageNameTemplate": "bufbuild/protobuf-py",
+      "versioningTemplate": "semver"
+    },
+    {
+      "customType": "regex",
+      "description": "BSR connectrpc/py plugin pin",
+      "managerFilePatterns": ["/(^|/)buf\\.gen\\.python\\.yaml$/"],
+      "matchStrings": [
+        "remote:\\s+buf\\.build/connectrpc/py:(?<currentValue>v[^\\s]+)"
+      ],
+      "datasourceTemplate": "github-releases",
+      "depNameTemplate": "buf.build/connectrpc/py",
+      "packageNameTemplate": "connectrpc/connect-python",
+      "versioningTemplate": "semver"
+    },
+    {
+      "customType": "regex",
+      "description": "BSR anthropics/buffa plugin pin",
+      "managerFilePatterns": ["/(^|/)buf\\.gen\\.rust\\.yaml$/"],
+      "matchStrings": [
+        "remote:\\s+buf\\.build/anthropics/buffa:(?<currentValue>v[^\\s]+)"
+      ],
+      "datasourceTemplate": "github-releases",
+      "depNameTemplate": "buf.build/anthropics/buffa",
+      "packageNameTemplate": "anthropics/buffa",
+      "versioningTemplate": "semver"
+    },
+    {
+      "customType": "regex",
+      "description": "BSR connectrpc/rust plugin pin",
+      "managerFilePatterns": ["/(^|/)buf\\.gen\\.rust\\.yaml$/"],
+      "matchStrings": [
+        "remote:\\s+buf\\.build/connectrpc/rust:(?<currentValue>v[^\\s]+)"
+      ],
+      "datasourceTemplate": "github-releases",
+      "depNameTemplate": "buf.build/connectrpc/rust",
+      "packageNameTemplate": "connectrpc/connect-rust",
+      "versioningTemplate": "semver"
+    },
+    {
+      "customType": "regex",
+      "description": "BSR module pin in buf.yaml deps (→ GitHub releases); run buf dep update after bump",
+      "managerFilePatterns": ["/(^|/)buf\\.yaml$/"],
+      "matchStrings": [
+        "-\\s+buf\\.build/bufbuild/protovalidate:(?<currentValue>v[^\\s]+)"
+      ],
+      "datasourceTemplate": "github-releases",
+      "depNameTemplate": "buf.build/bufbuild/protovalidate",
+      "packageNameTemplate": "bufbuild/protovalidate",
+      "versioningTemplate": "semver"
     }
   ],
   "packageRules": [
@@ -89,23 +173,49 @@
     },
     {
       "description": "connectrpc 0.8.x requires buffa 0.8.x (dual versions break HasMessageView). Lift this when connectrpc adopts buffa 0.9+.",
-      "matchManagers": ["cargo"],
       "matchPackageNames": [
         "buffa",
-        "/^buffa-/"
+        "/^buffa-/",
+        "anthropics/buffa",
+        "buf.build/anthropics/buffa"
       ],
       "allowedVersions": "<0.9.0"
     },
     {
-      "description": "Bump connect-rust stack together (codegen + runtime + buffa)",
-      "matchManagers": ["cargo"],
+      "description": "Bump connect-rust stack together (crates + BSR rust plugins)",
+      "groupName": "connect-rust",
       "matchPackageNames": [
         "buffa",
         "/^buffa-/",
         "connectrpc",
-        "/^connectrpc-/"
-      ],
-      "groupName": "connect-rust"
+        "/^connectrpc-/",
+        "anthropics/buffa",
+        "buf.build/anthropics/buffa",
+        "connectrpc/connect-rust",
+        "buf.build/connectrpc/rust"
+      ]
+    },
+    {
+      "description": "Group BSR Go/Python plugin pins",
+      "groupName": "buf plugins",
+      "matchPackageNames": [
+        "protocolbuffers/protobuf-go",
+        "buf.build/protocolbuffers/go",
+        "connectrpc/connect-go",
+        "buf.build/connectrpc/go",
+        "bufbuild/protobuf-py",
+        "buf.build/bufbuild/py",
+        "connectrpc/connect-python",
+        "buf.build/connectrpc/py"
+      ]
+    },
+    {
+      "description": "Group BSR module pins (buf.yaml). buf.lock is refreshed by .github/workflows/renovate-buf-lock.yml on Renovate PRs.",
+      "groupName": "buf modules",
+      "matchPackageNames": [
+        "bufbuild/protovalidate",
+        "buf.build/bufbuild/protovalidate"
+      ]
     },
     {
       "description": "Group other Rust crate updates (tokio, etc.)",

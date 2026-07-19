@@ -1,7 +1,7 @@
 """Hermetic buf generate/lint for Bazel.
 
 Buf CLI: prebuilt from @rules_buf_toolchains (cannot use go_binary — bufprivateusage).
-Go plugins: built once as go_binary tools and copied to workdir/bin/.
+Codegen plugins come from BSR remotes in buf.gen.*.yaml (no local plugins).
 Module layout (buf.yaml / buf.lock / protos) comes from buf_module.
 """
 
@@ -22,19 +22,9 @@ def _module_directory(ctx):
         ))
     return files[0]
 
-def _plugin_executables(ctx):
-    """Return File executables for ctx.attr.plugins."""
-    out = []
-    for target in ctx.attr.plugins:
-        exe = target[DefaultInfo].files_to_run.executable
-        if exe == None:
-            fail("buf_generate plugin {} is not executable".format(target.label))
-        out.append(exe)
-    return out
-
-def _workdir_lines(ctx, buf_bin, module_dir, plugins):
-    """Copy buf_module into a workdir; optional plugin binaries + go wrapper on PATH."""
-    lines = [
+def _workdir_lines(ctx, buf_bin, module_dir):
+    """Copy buf_module into a workdir for hermetic buf CLI."""
+    return [
         "set -euo pipefail",
         'BUF="$(realpath "{}")"'.format(buf_bin.path),
         'WORKDIR="$PWD/{}.work"'.format(ctx.label.name),
@@ -42,46 +32,17 @@ def _workdir_lines(ctx, buf_bin, module_dir, plugins):
         'mkdir -p "$WORKDIR"',
         'cp -a "{}/." "$WORKDIR/"'.format(module_dir.path),
     ]
-    if plugins:
-        # Template keeps `local: [go, tool, <plugin>]` for non-Bazel (`go tool buf`).
-        # Bazel puts real plugin binaries in bin/ and a `go` shim that execs them.
-        lines.append('mkdir -p "$WORKDIR/bin"')
-        for plugin in plugins:
-            lines.append(
-                'cp "{0}" "$WORKDIR/bin/{1}" && chmod +x "$WORKDIR/bin/{1}"'.format(
-                    plugin.path,
-                    plugin.basename,
-                ),
-            )
-        lines.extend([
-            'cat > "$WORKDIR/bin/go" <<\'EOF\'',
-            "#!/usr/bin/env bash",
-            "set -euo pipefail",
-            'BIN_DIR="$(cd "$(dirname "$0")" && pwd)"',
-            'if [[ "${1:-}" == "tool" && -n "${2:-}" && -x "$BIN_DIR/$2" ]]; then',
-            '  tool="$2"',
-            "  shift 2",
-            '  exec "$BIN_DIR/$tool" "$@"',
-            "fi",
-            'echo "buf_generate go wrapper: unsupported args: $*" >&2',
-            "exit 1",
-            "EOF",
-            'chmod +x "$WORKDIR/bin/go"',
-            'export PATH="$WORKDIR/bin:/usr/bin:/bin"',
-        ])
-    return lines
 
-def _run_buf(ctx, *, module_dir, outputs, extra_inputs, lines, mnemonic, progress_message, plugins):
+def _run_buf(ctx, *, module_dir, outputs, extra_inputs, lines, mnemonic, progress_message):
     """Run hermetic `$BUF ...` with a prebuilt buf CLI over a staged module."""
     buf_bin = ctx.executable._buf
-    tools = [buf_bin] + plugins
     ctx.actions.run_shell(
         outputs = outputs,
         inputs = depset(
-            direct = [module_dir] + extra_inputs + plugins,
+            direct = [module_dir] + extra_inputs,
         ),
-        tools = tools,
-        command = "\n".join(_workdir_lines(ctx, buf_bin, module_dir, plugins) + lines),
+        tools = [buf_bin],
+        command = "\n".join(_workdir_lines(ctx, buf_bin, module_dir) + lines),
         mnemonic = mnemonic,
         progress_message = progress_message,
         use_default_shell_env = True,
@@ -106,17 +67,16 @@ def _buf_generate_impl(ctx):
     outdir = ctx.attr.outdir
     module_dir = _module_directory(ctx)
 
-    # With --include-imports, plugins also emit imported packages under outdir
-    # (e.g. python/gen/buf/validate/). Copy the whole outdir tree in that case.
-    if ctx.attr.include_imports:
+    # With --include-imports or full_tree, copy the whole outdir tree (nested
+    # packages / multiple plugin outs). Otherwise copy `<outdir>/<proto_dir>/`.
+    if ctx.attr.include_imports or ctx.attr.full_tree:
         generated_rel = outdir
     else:
         proto_dir = ctx.attr.proto_dir
         if not proto_dir:
-            fail("{}: proto_dir is required when include_imports is False".format(ctx.label))
+            fail("{}: proto_dir is required when include_imports/full_tree is False".format(ctx.label))
         generated_rel = "{}/{}".format(outdir, proto_dir)
 
-    plugins = _plugin_executables(ctx)
     generate = '"$BUF" generate --template buf.gen.yaml'
     if ctx.attr.include_imports:
         generate += " --include-imports"
@@ -151,7 +111,6 @@ def _buf_generate_impl(ctx):
         lines = lines,
         mnemonic = "BufGenerate",
         progress_message = "Generating %{label} with buf",
-        plugins = plugins,
     )
     return [
         DefaultInfo(files = depset([out_dir])),
@@ -160,12 +119,12 @@ def _buf_generate_impl(ctx):
 
 buf_generate = rule(
     implementation = _buf_generate_impl,
-    doc = """Hermetic `buf generate` over a buf_module, with optional go_binary plugins.
+    doc = """Hermetic `buf generate` over a buf_module (BSR remote plugins).
 
     Returns a directory TreeArtifact and BufGeneratedInfo for write_source_files.
 
-    Without include_imports: contents of `<outdir>/<proto_dir>/` (flat).
-    With include_imports: full `<outdir>/` tree (nested; imported packages included).
+    Without include_imports/full_tree: contents of `<outdir>/<proto_dir>/` (flat).
+    With include_imports or full_tree: full `<outdir>/` tree (nested plugin outs).
     """,
     attrs = {
         "module": _MODULE_ATTR,
@@ -176,20 +135,19 @@ buf_generate = rule(
         ),
         "outdir": attr.string(
             mandatory = True,
-            doc = "plugins[].out from the template (e.g. \"go\"). Combined with proto_dir.",
+            doc = "plugins[].out from the template (e.g. \"go\"). Combined with proto_dir unless full_tree.",
         ),
         "proto_dir": attr.string(
             default = "",
-            doc = "Proto package dir inside the module (e.g. \"api/v1\"). Required unless include_imports.",
+            doc = "Proto package dir inside the module (e.g. \"api/v1\"). Required unless include_imports/full_tree.",
         ),
         "include_imports": attr.bool(
             default = False,
             doc = "Pass --include-imports to buf generate.",
         ),
-        "plugins": attr.label_list(
-            cfg = "exec",
-            default = [],
-            doc = "Local plugin go_binary targets; used via a PATH go shim for [go, tool, <name>].",
+        "full_tree": attr.bool(
+            default = False,
+            doc = "Copy the whole outdir tree without --include-imports (e.g. rust buffa+connect outs).",
         ),
         "_buf": _BUF_ATTR,
     },
@@ -212,7 +170,6 @@ def _buf_lint_test_impl(ctx):
         ],
         mnemonic = "BufLint",
         progress_message = "Linting %{label} with buf",
-        plugins = [],
     )
     runner = ctx.actions.declare_file(ctx.label.name + ".sh")
     ctx.actions.write(
@@ -262,7 +219,7 @@ buf_module = rule(
     implementation = _buf_module_impl,
     doc = """Directory with `buf.yaml`, `buf.lock`, and protos at their workspace-relative paths.
 
-    Shared by Rust (`CONNECT_BUF_ROOT`), buf_generate, and buf_lint_test.
+    Shared by buf_generate and buf_lint_test.
     """,
     attrs = {
         "srcs": attr.label_list(

@@ -2,8 +2,6 @@
 
 mod retry;
 
-include!(concat!(env!("OUT_DIR"), "/_connectrpc.rs"));
-
 use api::v1::{EchoRequest, EchoServiceClient};
 use connectrpc::client::{ClientConfig, HttpClient};
 

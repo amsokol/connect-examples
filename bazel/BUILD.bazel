@@ -1,14 +1,1 @@
-# Local protoc plugins built once from go.mod (via go_deps).
-# Buf CLI comes from @rules_buf_toolchains (prebuilt release).
-
-alias(
-    name = "protoc-gen-go",
-    actual = "@org_golang_google_protobuf//cmd/protoc-gen-go:protoc-gen-go",
-    visibility = ["//visibility:public"],
-)
-
-alias(
-    name = "protoc-gen-connect-go",
-    actual = "@com_connectrpc_connect//cmd/protoc-gen-connect-go:protoc-gen-connect-go",
-    visibility = ["//visibility:public"],
-)
+# Package for //bazel:buf.bzl (buf_generate / buf_lint_test / buf_module).

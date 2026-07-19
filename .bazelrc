@@ -3,3 +3,9 @@
 common --experimental_platform_in_output_dir
 # Use a symlink prefix to avoid clobbering the workspace root.
 build --symlink_prefix=.bazel/
+
+# BSR remote plugins (buf generate): pass host token into actions.
+# Without auth, public BSR allows only ~10 codegen requests/hour.
+#   go tool buf registry login
+#   # or: export BUF_TOKEN=...
+common --action_env=BUF_TOKEN

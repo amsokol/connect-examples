@@ -193,7 +193,7 @@ const file_api_v1_echo_proto_rawDesc = "" +
 	"\vEchoService\x123\n" +
 	"\x04Echo\x12\x13.api.v1.EchoRequest\x1a\x14.api.v1.EchoResponse\"\x00B\x8d\x01\n" +
 	"\n" +
-	"com.api.v1B\tEchoProtoP\x01Z3github.com/amsokol/connect-examples/go/api/v1;apiv1\xa2\x02\x03AXX\xaa\x02\x06Api.V1\xca\x02\x06Api\\V1\xe2\x02\x12Api\\V1\\GPBMetadata\xea\x02\aApi::V1\x92\x03\x05\xd2>\x02\x10\x03b\beditionsp\xe9\a"
+	"com.api.v1B\tEchoProtoP\x01Z3github.com/amsokol/connect-examples/go/api/v1;apiv1\xa2\x02\x03AXX\xaa\x02\x06Api.V1\xca\x02\x06Api\\V1\xe2\x02\x12Api\\V1\\GPBMetadata\xea\x02\aApi::V1\x92\x03\x05\xd2>\x02\x10\x03b\beditionsp\xe8\a"
 
 var file_api_v1_echo_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_api_v1_echo_proto_goTypes = []any{

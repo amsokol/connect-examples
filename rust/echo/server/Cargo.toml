@@ -5,7 +5,6 @@ edition.workspace = true
 rust-version.workspace = true
 publish.workspace = true
 description = "Connect Echo server (connect-rust)"
-build = "../build.rs"
 
 [[bin]]
 name = "echo-server"
@@ -13,6 +12,7 @@ path = "src/main.rs"
 
 [dependencies]
 buffa = { workspace = true }
+api = { workspace = true }
 connectrpc = { workspace = true, features = ["server", "gzip", "json"] }
 connectrpc-health = { workspace = true }
 http = { workspace = true }
@@ -20,9 +20,6 @@ serde = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
-
-[build-dependencies]
-connectrpc-build = { workspace = true }
 
 [dev-dependencies]
 bytes = { workspace = true }

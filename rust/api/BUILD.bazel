@@ -1,0 +1,16 @@
+load("@crates//:defs.bzl", "aliases", "all_crate_deps")
+load("@rules_rust//rust:defs.bzl", "rust_library")
+
+# Destination for //api/v1:generate → rust/api/gen (directory sync).
+exports_files(["gen"])
+
+rust_library(
+    name = "api",
+    srcs = ["src/lib.rs"] + glob(["gen/**/*.rs"]),
+    aliases = aliases(),
+    crate_name = "api",
+    visibility = ["//visibility:public"],
+    deps = all_crate_deps(
+        normal = True,
+    ),
+)

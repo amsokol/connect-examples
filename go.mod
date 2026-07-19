@@ -3,12 +3,10 @@ module github.com/amsokol/connect-examples
 go 1.26.5
 
 tool (
-	connectrpc.com/connect/cmd/protoc-gen-connect-go
 	github.com/bufbuild/buf/cmd/buf
 	github.com/golangci/golangci-lint/v2/cmd/golangci-lint
 	github.com/grpc-ecosystem/grpc-health-probe
 	golang.org/x/vuln/cmd/govulncheck
-	google.golang.org/protobuf/cmd/protoc-gen-go
 )
 
 require (

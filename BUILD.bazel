@@ -3,6 +3,7 @@ exports_files([
     "buf.lock",
     "buf.gen.go.yaml",
     "buf.gen.python.yaml",
+    "buf.gen.rust.yaml",
     "go.mod",
     "go.sum",
 ])

@@ -1,21 +1,5 @@
 load("@crates//:defs.bzl", "aliases", "all_crate_deps")
-load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
 load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_test")
-
-cargo_build_script(
-    name = "build_script",
-    srcs = ["//rust/echo:build.rs"],
-    build_script_env = {
-        "BUF_BIN": "$(execpath @rules_buf_toolchains//:buf)",
-        "CONNECT_BUF_ROOT": "$(execpath //api/v1:module)",
-    },
-    data = ["//api/v1:module"],
-    tags = ["requires-network"],
-    tools = ["@rules_buf_toolchains//:buf"],
-    deps = all_crate_deps(
-        build = True,
-    ),
-)
 
 rust_binary(
     name = "server",
@@ -26,16 +10,15 @@ rust_binary(
     aliases = aliases(),
     deps = all_crate_deps(
         normal = True,
-    ) + [":build_script"],
+    ) + ["//rust/api"],
 )
 
 rust_test(
     name = "server_test",
     size = "small",
     crate = ":server",
-    tags = ["requires-network"],
     deps = all_crate_deps(
         normal = True,
         normal_dev = True,
-    ) + [":build_script"],
+    ) + ["//rust/api"],
 )

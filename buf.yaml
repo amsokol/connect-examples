@@ -5,7 +5,7 @@ modules:
     includes:
       - api
 deps:
-  - buf.build/bufbuild/protovalidate
+  - buf.build/bufbuild/protovalidate:v1.2.2
 lint:
   use:
     - STANDARD

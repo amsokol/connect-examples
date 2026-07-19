@@ -37,8 +37,8 @@ jobs:
         uses: actions/checkout@v7
 
       # Do not `bazel run //api/v1:generate` here — that rewrites stubs and hides
-      # drift. //api/v1:generate_*_test (via bazel test //...) fails if checked-in
-      # Go/Python stubs are out of date; regenerate locally and commit instead.
+      # drift. Codegen targets are tagged manual (BSR remotes); Native job checks
+      # drift via `go tool buf generate`. Optionally: bazel test //api/v1:generate_tests
 
       - name: Build
         run: |
@@ -81,17 +81,25 @@ jobs:
         run: |
           set -euo pipefail
           go mod download
-          # Installs buf (and other tools) to GOPATH/bin for PATH consumers such as rust/echo/build.rs.
           go install tool
 
       - name: Lint Protobuf
         run: go tool buf lint --error-format=github-actions
 
       - name: Check generated code is up to date
+        env:
+          # Remote plugins need auth (~10/hr anonymous vs ~960/hr with token).
+          # Repo secret: BUF_TOKEN from https://buf.build/settings/user
+          BUF_TOKEN: ${{ secrets.BUF_TOKEN }}
         run: |
           set -euo pipefail
+          if [[ -z "${BUF_TOKEN}" ]]; then
+            echo "::error::BUF_TOKEN secret is required for BSR remote codegen. Create a token at https://buf.build/settings/user and add it as a repository secret."
+            exit 1
+          fi
           go tool buf generate --template buf.gen.go.yaml
           go tool buf generate --template buf.gen.python.yaml --include-imports
+          go tool buf generate --template buf.gen.rust.yaml
           # Match bazel buf_generate: py plugins omit package markers.
           find python/gen -type d -print0 | while IFS= read -r -d "" d; do
             if [[ ! -f "$d/__init__.py" ]]; then
@@ -104,6 +112,10 @@ jobs:
           fi
           if ! git diff --exit-code -- python/gen; then
             echo "::error::Generated Python code is out of date. Run 'go tool buf generate --template buf.gen.python.yaml --include-imports' (or 'bazel run //api/v1:generate') and commit the result."
+            exit 1
+          fi
+          if ! git diff --exit-code -- rust/api/gen; then
+            echo "::error::Generated Rust code is out of date. Run 'go tool buf generate --template buf.gen.rust.yaml' (or 'bazel run //api/v1:generate') and commit the result."
             exit 1
           fi
 

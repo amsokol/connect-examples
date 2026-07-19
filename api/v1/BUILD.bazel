@@ -7,7 +7,7 @@ filegroup(
     visibility = ["//visibility:public"],
 )
 
-# Staged buf module shared by generate, lint, and Rust build.rs.
+# Staged buf module shared by generate and lint.
 buf_module(
     name = "module",
     srcs = [":protos"],
@@ -24,11 +24,8 @@ buf_generate(
     name = "go",
     module = ":module",
     outdir = "go",
-    plugins = [
-        "//bazel:protoc-gen-go",
-        "//bazel:protoc-gen-connect-go",
-    ],
     proto_dir = "api/v1",
+    tags = ["manual"],
     template = "//:buf.gen.go.yaml",
 )
 
@@ -37,7 +34,17 @@ buf_generate(
     include_imports = True,
     module = ":module",
     outdir = "python/gen",
+    tags = ["manual"],
     template = "//:buf.gen.python.yaml",
+)
+
+buf_generate(
+    name = "rust",
+    full_tree = True,
+    module = ":module",
+    outdir = "rust/api/gen",
+    tags = ["manual"],
+    template = "//:buf.gen.rust.yaml",
 )
 
 write_source_files(
@@ -52,5 +59,11 @@ write_source_files(
     files = {
         "//go/api:v1": ":go",
         "//python:gen": ":python",
+        "//rust/api:gen": ":rust",
     },
+    # Keep out of bazel build/test //... — apps use checked-in stubs; BSR remotes
+    # would otherwise be hit on every CI/local //... (rate limits). Run explicitly:
+    #   bazel run //api/v1:generate
+    #   bazel test //api/v1:generate_tests
+    tags = ["manual"],
 )

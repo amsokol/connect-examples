@@ -15,7 +15,7 @@ bazel_dep(name = "rules_python", version = "2.2.0")
 bazel_dep(name = "rules_rust", version = "0.71.3")
 
 # Prebuilt Buf CLI (buf cannot be built via go_deps — bufprivateusage guard).
-# Local protoc plugins are go_binary aliases under //bazel.
+# Codegen plugins are BSR remotes in buf.gen.*.yaml.
 buf = use_extension("@rules_buf//buf:extensions.bzl", "buf")
 buf.toolchains(version = "v1.72.0")
 use_repo(buf, "rules_buf_toolchains")

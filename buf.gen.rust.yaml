@@ -1,0 +1,15 @@
+version: v2
+plugins:
+  # Message types (BSR). One file per proto package — no packaging plugin.
+  - remote: buf.build/anthropics/buffa:v0.8.1
+    out: rust/api/gen/buffa
+    opt:
+      - file_per_package=true
+      - json=true
+      - views=true
+  # Connect stubs (BSR). Separate out: — both plugins emit <pkg>.rs.
+  - remote: buf.build/connectrpc/rust:v0.8.0
+    out: rust/api/gen/connect
+    opt:
+      - file_per_package
+      - buffa_module=crate::buffa

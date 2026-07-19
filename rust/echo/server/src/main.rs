@@ -2,13 +2,13 @@
 
 mod log;
 
-include!(concat!(env!("OUT_DIR"), "/_connectrpc.rs"));
-
 use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Duration;
 
-use api::v1::{ECHO_SERVICE_SERVICE_NAME, EchoRequest, EchoResponse, EchoService, EchoServiceExt};
+use api::v1::{
+    ECHO_SERVICE_SERVICE_NAME, EchoRequest, EchoResponse, EchoService, EchoServiceExt,
+};
 use connectrpc::{
     ConnectError, ConnectRpcService, RequestContext, Response, Router, Server, ServiceRequest,
     ServiceResult,
