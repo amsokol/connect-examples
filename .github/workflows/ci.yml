@@ -19,7 +19,13 @@ jobs:
         run: |
           set -euo pipefail
           apt-get update
-          apt-get install -y --no-install-recommends ca-certificates curl git unzip zip
+          apt-get install -y --no-install-recommends \
+            build-essential \
+            ca-certificates \
+            curl \
+            git \
+            unzip \
+            zip
           curl -fsSL -o /usr/local/bin/bazel \
             "https://github.com/bazelbuild/bazelisk/releases/download/v${BAZELISK_VERSION}/bazelisk-linux-amd64"
           chmod +x /usr/local/bin/bazel
@@ -32,13 +38,10 @@ jobs:
 
       - name: Generate
         run: |
-          set -euo pipefail
-          bazel test //api/v1:lint //api/v1:generate_tests
-          bazel build //api/v1:go //api/v1:python
+          bazel run //api/v1:generate
 
       - name: Build
         run: |
-          set -euo pipefail
           bazel build //...
 
       - name: Test
