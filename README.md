@@ -246,9 +246,8 @@ GitHub Actions (`.github/workflows/ci.yml`) runs two jobs in parallel on pushes 
 
 **Bazel** — runs in `eclipse-temurin:25-jdk` with Bazelisk installed as `bazel` (version from `.bazelversion`):
 
-1. Generate — `bazel run //api/v1:generate` (checked-in Go/Python stubs)
-2. Build — `bazel build //...` (Go, Python, Rust Echo binaries)
-3. Test — `bazel test //...`
+1. Build — `bazel build //...` (Go, Python, Rust Echo binaries)
+2. Test — `bazel test //...` (includes `//api/v1:lint` and `write_source_files` checks that fail if checked-in Go/Python stubs are out of date; do **not** run `bazel run //api/v1:generate` in CI or those checks are masked)
 
 **Native** — Go / Python / Rust toolchains without Bazel:
 

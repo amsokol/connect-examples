@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   bazel:
-    name: Bazel (generate, build, test)
+    name: Bazel (build, test)
     runs-on: ubuntu-latest
     container:
       image: eclipse-temurin:25-jdk
@@ -36,9 +36,9 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v7
 
-      - name: Generate
-        run: |
-          bazel run //api/v1:generate
+      # Do not `bazel run //api/v1:generate` here — that rewrites stubs and hides
+      # drift. //api/v1:generate_*_test (via bazel test //...) fails if checked-in
+      # Go/Python stubs are out of date; regenerate locally and commit instead.
 
       - name: Build
         run: |
