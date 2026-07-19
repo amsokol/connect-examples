@@ -65,7 +65,7 @@ Rust codegen runs from each crate's `build.rs` (`rust/client`, `rust/server`) vi
 
 ## Bazel
 
-Requires [Bazel](https://bazel.build/) / [Bazelisk](https://github.com/bazelbuild/bazelisk) (version pinned in `.bazeliskrc`). Go SDK and module deps come from `go.mod` via `rules_go` (`go.MODULE.bazel`). Python toolchain and pip deps come from `requirements.txt` via `rules_python` (`python.MODULE.bazel`). Buf CLI is the prebuilt binary from `rules_buf`; Go plugins are `go_binary` tools (a PATH `go` shim satisfies `local: [go, tool, …]` in `buf.gen.go.yaml`). BSR pins stay in `buf.lock` only.
+Requires [Bazel](https://bazel.build/) / [Bazelisk](https://github.com/bazelbuild/bazelisk) (version pinned in `.bazelversion`). Go SDK and module deps come from `go.mod` via `rules_go` (`go.MODULE.bazel`). Python toolchain and pip deps come from `requirements.txt` via `rules_python` (`python.MODULE.bazel`). Buf CLI is the prebuilt binary from `rules_buf`; Go plugins are `go_binary` tools (a PATH `go` shim satisfies `local: [go, tool, …]` in `buf.gen.go.yaml`). BSR pins stay in `buf.lock` only.
 
 ### 1. Lint
 
@@ -241,7 +241,7 @@ cargo test -p echo-server
 
 GitHub Actions (`.github/workflows/ci.yml`) runs two jobs in parallel on pushes to `main` and on pull requests:
 
-**Bazel** — runs in `eclipse-temurin:25-jdk` with Bazelisk installed as `bazel` (version from `.bazeliskrc`):
+**Bazel** — runs in `eclipse-temurin:25-jdk` with Bazelisk installed as `bazel` (version from `.bazelversion`):
 
 1. Generate — `bazel test //api/v1:lint //api/v1:generate_tests` and `bazel build //api/v1:go //api/v1:python`
 2. Build — Go/Python Echo binaries
@@ -273,7 +273,7 @@ GitHub Actions (`.github/workflows/ci.yml`) runs two jobs in parallel on pushes 
 
 - **2-day** `minimumReleaseAge` quarantine for new releases
 - Security updates skip the quarantine
-- Covers Go modules, Cargo crates, pip-compile lockfiles, GitHub Actions, and the `buf.toolchains` pin in `MODULE.bazel`
+- Covers Go modules, Cargo crates, pip-compile lockfiles, GitHub Actions, the `buf.toolchains` pin in `MODULE.bazel`, and `.bazelversion`
 - Python: tracks pins in `requirements*.in`; regenerates `requirements*.txt` via pip-compile (does not bump lockfile-only transitive deps)
 - Rust: `buffa` is capped at `<0.9.0` until `connectrpc` supports it; `connectrpc*` + `buffa*` update as one **connect-rust** group
 
