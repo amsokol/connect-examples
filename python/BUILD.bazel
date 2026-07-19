@@ -1,0 +1,2 @@
+# Destination marker for //api/v1:generate_python → python/gen.
+exports_files(["gen"])

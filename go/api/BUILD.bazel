@@ -1,0 +1,2 @@
+# Destination package marker for //api/v1:generate_go → go/api/v1.
+exports_files(["v1"])

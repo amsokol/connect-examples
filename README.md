@@ -11,8 +11,7 @@ api/v1/echo.proto              # service definition
 go/api/v1/                     # generated Go Protobuf + Connect code
 go/echo/cmd/server/            # Echo server (+ unit test)
 go/echo/cmd/client/            # Go Echo client (h2c + retry interceptor)
-python/api/v1/                 # generated Python Protobuf + Connect code
-python/buf/validate/           # generated Protovalidate stubs (via --include-imports)
+python/gen/                    # generated Python Protobuf + Connect + Protovalidate
 python/echo/client/            # Python Echo client (retry interceptor)
 Cargo.toml                     # Rust workspace root
 rust/client/                   # Rust Echo client ([connect-rust](https://github.com/connectrpc/connect-rust))
@@ -49,19 +48,59 @@ Go tools used by this repo are declared in `go.mod` and run via `go tool` (insta
 ## Generate code
 
 ```bash
-go tool buf dep update
 go tool buf lint
-go tool buf generate --template buf.gen.go.yaml
-go tool buf generate --template buf.gen.python.yaml --include-imports
 ```
 
-`--include-imports` is required for the Python template so Protovalidate stubs land under `python/buf/validate/`.
+### Go
 
-Generated Go files land in `go/api/v1/` (`echo.pb.go` and `echo.connect.go` in the same `apiv1` package).
+```bash
+bazel run //api/v1:generate_go
+```
 
-Generated Python files land in `python/api/v1/` (`echo_pb.py` and `echo_connect.py`).
+Generated Go files land in `go/api/v1/` (`echo.pb.go` and `echo.connect.go` in the same `apiv1` package). Details: [Bazel](#bazel).
+
+### Python
+
+```bash
+bazel run //api/v1:generate_python
+```
+
+Generated tree lands in `python/gen/` (`api/` + `buf/`). Details: [Bazel](#bazel).
+
+### Rust
 
 Rust codegen runs from each crate's `build.rs` (`rust/client`, `rust/server`) via [`connectrpc-build`](https://crates.io/crates/connectrpc-build) (`buf build` → buffa/connect stubs into `$OUT_DIR`). No checked-in generated Rust sources.
+
+## Bazel
+
+Requires [Bazel](https://bazel.build/) / [Bazelisk](https://github.com/bazelbuild/bazelisk) (version pinned in `.bazeliskrc`). Go SDK and module deps come from `go.mod` via `rules_go` (`go.MODULE.bazel`).
+
+### 1. Generation
+
+Hermetic `go tool buf generate` into `bazel-out`, then copy into the source tree:
+
+```bash
+bazel run //api/v1:generate_go
+bazel run //api/v1:generate_python
+```
+
+Each builds its `buf_generate` dependency (`:go` / `:python`), then `write_source_files` updates the checked-in stubs. No `buf dep update`; pins stay in `buf.lock` / `go.sum`.
+
+### 2. Build
+
+```bash
+bazel build //api/v1:go //api/v1:python
+```
+
+Hermetic generated trees under `.bazel/bin/api/v1/{go,python}/`.
+
+### 3. Test
+
+```bash
+bazel test //api/v1:generate_go_test //api/v1:generate_python_test
+```
+
+Fails if checked-in stubs are out of date. Re-run generation (step 1) and commit if needed.
 
 ## Run the Echo example
 

@@ -54,12 +54,18 @@ jobs:
           set -euo pipefail
           go tool buf generate --template buf.gen.go.yaml
           go tool buf generate --template buf.gen.python.yaml --include-imports
+          # Match bazel buf_generate: py plugins omit package markers.
+          find python/gen -type d -print0 | while IFS= read -r -d "" d; do
+            if [[ ! -f "$d/__init__.py" ]]; then
+              printf '%s\n' 'from __future__ import annotations' > "$d/__init__.py"
+            fi
+          done
           if ! git diff --exit-code -- go/api; then
             echo "::error::Generated Go code is out of date. Run 'go tool buf generate --template buf.gen.go.yaml' and commit the result."
             exit 1
           fi
-          if ! git diff --exit-code -- python/api python/buf python/__init__.py; then
-            echo "::error::Generated Python code is out of date. Run 'go tool buf generate --template buf.gen.python.yaml --include-imports' and commit the result."
+          if ! git diff --exit-code -- python/gen; then
+            echo "::error::Generated Python code is out of date. Run 'bazel run //api/v1:generate_python' (or 'go tool buf generate --template buf.gen.python.yaml --include-imports') and commit the result."
             exit 1
           fi
 

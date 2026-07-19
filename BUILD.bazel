@@ -1,0 +1,8 @@
+exports_files([
+    "buf.yaml",
+    "buf.lock",
+    "buf.gen.go.yaml",
+    "buf.gen.python.yaml",
+    "go.mod",
+    "go.sum",
+])

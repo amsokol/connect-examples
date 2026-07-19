@@ -1,0 +1,14 @@
+"""
+Root Bazel module configuration file that defines dependencies and external repositories.
+"""
+
+module(
+    name = "connect_examples",
+    version = "0.1.0",
+)
+
+bazel_dep(name = "bazel_lib", version = "3.5.0")
+bazel_dep(name = "gazelle", version = "0.51.3")
+bazel_dep(name = "rules_go", version = "0.61.1")
+
+include("//:go.MODULE.bazel")
