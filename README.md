@@ -14,8 +14,8 @@ go/echo/cmd/client/            # Go Echo client (h2c + retry interceptor)
 python/gen/                    # generated Python Protobuf + Connect + Protovalidate
 python/echo/client/            # Python Echo client (retry interceptor)
 Cargo.toml                     # Rust workspace root
-rust/client/                   # Rust Echo client ([connect-rust](https://github.com/connectrpc/connect-rust))
-rust/server/                   # Rust Echo server (HTTP/1.1 + h2c + request logging)
+rust/echo/client/              # Rust Echo client ([connect-rust](https://github.com/connectrpc/connect-rust))
+rust/echo/server/              # Rust Echo server (HTTP/1.1 + h2c + request logging)
 requirements.in                # Python dependency pins (source)
 requirements.txt               # locked Python deps (pip-compile)
 requirements-dev.in            # Python dev tools (ruff, pip-audit)
@@ -61,11 +61,11 @@ Details: [Bazel](#bazel).
 
 ### Rust
 
-Rust codegen runs from each crate's `build.rs` (`rust/client`, `rust/server`) via [`connectrpc-build`](https://crates.io/crates/connectrpc-build) (`buf build` → buffa/connect stubs into `$OUT_DIR`). No checked-in generated Rust sources.
+Rust codegen runs from shared `rust/echo/build.rs` via [`connectrpc-build`](https://crates.io/crates/connectrpc-build) (`buf build` → buffa/connect stubs into `$OUT_DIR`). No checked-in generated Rust sources.
 
 ## Bazel
 
-Requires [Bazel](https://bazel.build/) / [Bazelisk](https://github.com/bazelbuild/bazelisk) (version pinned in `.bazelversion`). Go SDK and module deps come from `go.mod` via `rules_go` (`go.MODULE.bazel`). Python toolchain and pip deps come from `requirements.txt` via `rules_python` (`python.MODULE.bazel`). Buf CLI is the prebuilt binary from `rules_buf`; Go plugins are `go_binary` tools (a PATH `go` shim satisfies `local: [go, tool, …]` in `buf.gen.go.yaml`). BSR pins stay in `buf.lock` only.
+Requires [Bazel](https://bazel.build/) / [Bazelisk](https://github.com/bazelbuild/bazelisk) (version pinned in `.bazelversion`). Go SDK and module deps come from `go.mod` via `rules_go` (`go.MODULE.bazel`). Python toolchain and pip deps come from `requirements.txt` via `rules_python` (`python.MODULE.bazel`). Rust toolchain and crates come from `Cargo.toml` / `Cargo.lock` via `rules_rust` (`rust.MODULE.bazel`). Buf CLI is the prebuilt binary from `rules_buf`; Go plugins are `go_binary` tools (a PATH `go` shim satisfies `local: [go, tool, …]` in `buf.gen.go.yaml`). BSR pins stay in `buf.lock` only.
 
 ### 1. Lint
 
@@ -73,7 +73,7 @@ Requires [Bazel](https://bazel.build/) / [Bazelisk](https://github.com/bazelbuil
 bazel test //api/v1:lint
 ```
 
-Hermetic `buf lint` with `buf.yaml` + `buf.lock`.
+Hermetic `buf lint` over `//api/v1:module` (pins from `buf.lock`).
 
 ### 2. Generation
 
@@ -83,7 +83,7 @@ Hermetic `buf generate` into `bazel-out`, then copy into the source tree:
 bazel run //api/v1:generate
 ```
 
-Builds both `buf_generate` deps (`:go` / `:python`), then one `write_source_files` updates the checked-in stubs. Go plugins come from `//bazel:protoc-gen-*` (built once). No `buf dep update`; pins stay in `buf.lock` / `go.sum`.
+Builds both `buf_generate` deps (`:go` / `:python`) from shared `//api/v1:module`, then one `write_source_files` updates the checked-in stubs. Go plugins come from `//bazel:protoc-gen-*` (built once). No `buf dep update`; pins stay in `buf.lock` / `go.sum`.
 
 ### 3. Build
 
@@ -91,14 +91,15 @@ Builds both `buf_generate` deps (`:go` / `:python`), then one `write_source_file
 bazel build //api/v1:go //api/v1:python
 bazel build //go/echo/cmd/server:server //go/echo/cmd/client:client
 bazel build //python/echo/client:client
+bazel build //rust/echo/server:server //rust/echo/client:client
 ```
 
-Hermetic generated trees under `.bazel/bin/api/v1/{go,python}/`. Go and Python apps use checked-in stubs (`//go/api:apiv1`, `//python:gen_py`) plus module/pip deps from `go.MODULE.bazel` / `python.MODULE.bazel`.
+Hermetic generated trees under `.bazel/bin/api/v1/{go,python}/`. Go and Python apps use checked-in stubs (`//go/api:apiv1`, `//python:gen_py`) plus module/pip deps from `go.MODULE.bazel` / `python.MODULE.bazel`. Rust apps run `connectrpc-build` via `cargo_build_script` with the hermetic Buf CLI from `rules_buf` (same `build.rs` as Cargo).
 
 ### 4. Test
 
 ```bash
-bazel test //api/v1:lint //api/v1:generate_tests //go/...
+bazel test //api/v1:lint //api/v1:generate_tests //go/... //rust/...
 ```
 
 `generate_tests` fails if checked-in stubs are out of date. Re-run generation (step 2) and commit if needed.
@@ -127,6 +128,7 @@ Alternative to the Go server (same port — run only one):
 
 ```bash
 cargo run -p echo-server
+# or: bazel run //rust/echo/server:server
 ```
 
 Serves Connect over HTTP/1.1 and h2c on `127.0.0.1:8080`. Logs unary RPCs with `tracing` (procedure, protocol, peer, Content-Type, User-Agent, duration). Serves [`grpc.health.v1.Health`](https://crates.io/crates/connectrpc-health) (`Serving` for `api.v1.EchoService`) for Kubernetes gRPC probes — same check as the Go server:
@@ -211,6 +213,7 @@ From the repo root (Buf CLI must be on `PATH`; run `go install tool` once):
 
 ```bash
 cargo run -p echo-client
+# or: bazel run //rust/echo/client:client
 ```
 
 Expected output:
@@ -219,9 +222,9 @@ Expected output:
 Hello, Jane!
 ```
 
-The client uses [connect-rust](https://github.com/connectrpc/connect-rust) with `HttpClient::plaintext_http2_only()` (h2c), matching the Go client. For HTTP/1.1, switch to `HttpClient::plaintext()` in `rust/client/src/main.rs`.
+The client uses [connect-rust](https://github.com/connectrpc/connect-rust) with `HttpClient::plaintext_http2_only()` (h2c), matching the Go client. For HTTP/1.1, switch to `HttpClient::plaintext()` in `rust/echo/client/src/main.rs`.
 
-`rust/client/src/retry.rs` retries `Unavailable` / `ResourceExhausted` (including dial/transport failures mapped to `Unavailable`) with the same 5-attempt exponential backoff.
+`rust/echo/client/src/retry.rs` retries `Unavailable` / `ResourceExhausted` (including dial/transport failures mapped to `Unavailable`) with the same 5-attempt exponential backoff.
 
 ## Lint, vulns, and test
 
@@ -243,9 +246,9 @@ GitHub Actions (`.github/workflows/ci.yml`) runs two jobs in parallel on pushes 
 
 **Bazel** — runs in `eclipse-temurin:25-jdk` with Bazelisk installed as `bazel` (version from `.bazelversion`):
 
-1. Generate — `bazel test //api/v1:lint //api/v1:generate_tests` and `bazel build //api/v1:go //api/v1:python`
-2. Build — Go/Python Echo binaries
-3. Test — `bazel test //go/...`
+1. Generate — `bazel run //api/v1:generate` (checked-in Go/Python stubs)
+2. Build — `bazel build //...` (Go, Python, Rust Echo binaries)
+3. Test — `bazel test //...`
 
 **Native** — Go / Python / Rust toolchains without Bazel:
 
@@ -265,7 +268,7 @@ GitHub Actions (`.github/workflows/ci.yml`) runs two jobs in parallel on pushes 
 - Connect Go codegen uses `package_suffix=` so handlers/clients live next to the `.pb.go` types.
 - Python uses [connectrpc](https://pypi.org/project/connectrpc/) with [protobuf-py](https://protobufpy.com) (Buf `bufbuild/py` + `connectrpc/py` plugins).
 - Python pins in `requirements*.in` use exact `==` versions so Renovate bumps are explicit.
-- Rust uses a Cargo workspace (`Cargo.toml` at the repo root); crate pins live in `[workspace.dependencies]`. Codegen is via each crate's `build.rs` + Buf (not checked-in stubs).
+- Rust uses a Cargo workspace (`Cargo.toml` at the repo root); crate pins live in `[workspace.dependencies]`. Codegen is via shared `rust/echo/build.rs` + Buf (not checked-in stubs). Bazel stages `//api/v1:module` and passes `CONNECT_BUF_ROOT` / hermetic Buf via `rust.MODULE.bazel`.
 
 ## Dependency updates (Renovate)
 

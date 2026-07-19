@@ -2,7 +2,7 @@
 
 Buf CLI: prebuilt from @rules_buf_toolchains (cannot use go_binary — bufprivateusage).
 Go plugins: built once as go_binary tools and copied to workdir/bin/.
-BSR pins stay in buf.lock.
+Module layout (buf.yaml / buf.lock / protos) comes from buf_module.
 """
 
 BufGeneratedInfo = provider(
@@ -12,17 +12,15 @@ BufGeneratedInfo = provider(
     },
 )
 
-def _common_proto_dir(srcs):
-    """Directory of proto srcs relative to the module root (e.g. api/v1)."""
-    dirs = {}
-    for src in srcs:
-        parts = src.short_path.rsplit("/", 1)
-        d = "" if len(parts) == 1 else parts[0]
-        dirs[d] = True
-    keys = sorted(dirs.keys())
-    if len(keys) != 1:
-        fail("buf_generate srcs must share a single directory, got: {}".format(keys))
-    return keys[0]
+def _module_directory(ctx):
+    """Single TreeArtifact from a buf_module dependency."""
+    files = ctx.files.module
+    if len(files) != 1:
+        fail("{}: module must be a single directory (buf_module), got {}".format(
+            ctx.label,
+            [f.path for f in files],
+        ))
+    return files[0]
 
 def _plugin_executables(ctx):
     """Return File executables for ctx.attr.plugins."""
@@ -34,16 +32,15 @@ def _plugin_executables(ctx):
         out.append(exe)
     return out
 
-def _workdir_lines(ctx, buf_bin, plugins):
-    """Buf module workdir; optional plugin binaries + go wrapper on PATH."""
+def _workdir_lines(ctx, buf_bin, module_dir, plugins):
+    """Copy buf_module into a workdir; optional plugin binaries + go wrapper on PATH."""
     lines = [
         "set -euo pipefail",
         'BUF="$(realpath "{}")"'.format(buf_bin.path),
         'WORKDIR="$PWD/{}.work"'.format(ctx.label.name),
         'rm -rf "$WORKDIR"',
         'mkdir -p "$WORKDIR"',
-        'cp "{}" "$WORKDIR/buf.yaml"'.format(ctx.file.config.path),
-        'cp "{}" "$WORKDIR/buf.lock"'.format(ctx.file.lock.path),
+        'cp -a "{}/." "$WORKDIR/"'.format(module_dir.path),
     ]
     if plugins:
         # Template keeps `local: [go, tool, <plugin>]` for non-Bazel (`go tool buf`).
@@ -72,63 +69,52 @@ def _workdir_lines(ctx, buf_bin, plugins):
             'chmod +x "$WORKDIR/bin/go"',
             'export PATH="$WORKDIR/bin:/usr/bin:/bin"',
         ])
-    for src in ctx.files.srcs:
-        lines.append('mkdir -p "$WORKDIR/$(dirname "{}")"'.format(src.short_path))
-        lines.append('cp "{}" "$WORKDIR/{}"'.format(src.path, src.short_path))
     return lines
 
-def _run_buf(ctx, *, outputs, extra_inputs, lines, mnemonic, progress_message, plugins):
-    """Run hermetic `$BUF ...` with a prebuilt buf CLI."""
+def _run_buf(ctx, *, module_dir, outputs, extra_inputs, lines, mnemonic, progress_message, plugins):
+    """Run hermetic `$BUF ...` with a prebuilt buf CLI over a staged module."""
     buf_bin = ctx.executable._buf
     tools = [buf_bin] + plugins
     ctx.actions.run_shell(
         outputs = outputs,
         inputs = depset(
-            direct = ctx.files.srcs + [
-                ctx.file.config,
-                ctx.file.lock,
-            ] + extra_inputs + plugins,
+            direct = [module_dir] + extra_inputs + plugins,
         ),
         tools = tools,
-        command = "\n".join(_workdir_lines(ctx, buf_bin, plugins) + lines),
+        command = "\n".join(_workdir_lines(ctx, buf_bin, module_dir, plugins) + lines),
         mnemonic = mnemonic,
         progress_message = progress_message,
         use_default_shell_env = True,
         execution_requirements = {"requires-network": "1"},
     )
 
-_COMMON_ATTRS = {
-    "srcs": attr.label_list(
-        allow_files = [".proto"],
-        mandatory = True,
-        doc = "Protobuf sources (paths preserved under the buf module root).",
-    ),
-    "config": attr.label(
-        allow_single_file = True,
-        default = Label("//:buf.yaml"),
-    ),
-    "lock": attr.label(
-        allow_single_file = True,
-        default = Label("//:buf.lock"),
-    ),
-    "_buf": attr.label(
-        default = Label("@rules_buf_toolchains//:buf"),
-        executable = True,
-        cfg = "exec",
-        allow_single_file = True,
-    ),
-}
+_MODULE_ATTR = attr.label(
+    allow_files = True,
+    mandatory = True,
+    doc = "buf_module TreeArtifact (buf.yaml, buf.lock, protos).",
+)
+
+_BUF_ATTR = attr.label(
+    default = Label("@rules_buf_toolchains//:buf"),
+    executable = True,
+    cfg = "exec",
+    allow_single_file = True,
+)
 
 def _buf_generate_impl(ctx):
     out_dir = ctx.actions.declare_directory(ctx.label.name)
     outdir = ctx.attr.outdir
-    proto_dir = _common_proto_dir(ctx.files.srcs)
+    module_dir = _module_directory(ctx)
+
     # With --include-imports, plugins also emit imported packages under outdir
     # (e.g. python/gen/buf/validate/). Copy the whole outdir tree in that case.
     if ctx.attr.include_imports:
         generated_rel = outdir
     else:
-        generated_rel = outdir if proto_dir == "" else "{}/{}".format(outdir, proto_dir)
+        proto_dir = ctx.attr.proto_dir
+        if not proto_dir:
+            fail("{}: proto_dir is required when include_imports is False".format(ctx.label))
+        generated_rel = "{}/{}".format(outdir, proto_dir)
 
     plugins = _plugin_executables(ctx)
     generate = '"$BUF" generate --template buf.gen.yaml'
@@ -159,6 +145,7 @@ def _buf_generate_impl(ctx):
 
     _run_buf(
         ctx,
+        module_dir = module_dir,
         outputs = [out_dir],
         extra_inputs = [ctx.file.template],
         lines = lines,
@@ -173,7 +160,7 @@ def _buf_generate_impl(ctx):
 
 buf_generate = rule(
     implementation = _buf_generate_impl,
-    doc = """Hermetic `buf generate` with prebuilt CLI and optional go_binary plugins.
+    doc = """Hermetic `buf generate` over a buf_module, with optional go_binary plugins.
 
     Returns a directory TreeArtifact and BufGeneratedInfo for write_source_files.
 
@@ -181,7 +168,7 @@ buf_generate = rule(
     With include_imports: full `<outdir>/` tree (nested; imported packages included).
     """,
     attrs = {
-        "srcs": _COMMON_ATTRS["srcs"],
+        "module": _MODULE_ATTR,
         "template": attr.label(
             allow_single_file = True,
             mandatory = True,
@@ -189,7 +176,11 @@ buf_generate = rule(
         ),
         "outdir": attr.string(
             mandatory = True,
-            doc = "plugins[].out from the template (e.g. \"go\"). Combined with the proto directory.",
+            doc = "plugins[].out from the template (e.g. \"go\"). Combined with proto_dir.",
+        ),
+        "proto_dir": attr.string(
+            default = "",
+            doc = "Proto package dir inside the module (e.g. \"api/v1\"). Required unless include_imports.",
         ),
         "include_imports": attr.bool(
             default = False,
@@ -200,16 +191,16 @@ buf_generate = rule(
             default = [],
             doc = "Local plugin go_binary targets; used via a PATH go shim for [go, tool, <name>].",
         ),
-        "config": _COMMON_ATTRS["config"],
-        "lock": _COMMON_ATTRS["lock"],
-        "_buf": _COMMON_ATTRS["_buf"],
+        "_buf": _BUF_ATTR,
     },
 )
 
 def _buf_lint_test_impl(ctx):
+    module_dir = _module_directory(ctx)
     marker = ctx.actions.declare_file(ctx.label.name + ".ok")
     _run_buf(
         ctx,
+        module_dir = module_dir,
         outputs = [marker],
         extra_inputs = [],
         lines = [
@@ -236,7 +227,56 @@ def _buf_lint_test_impl(ctx):
 
 buf_lint_test = rule(
     implementation = _buf_lint_test_impl,
-    doc = "Hermetic `buf lint` test using the shared rules_buf CLI.",
-    attrs = _COMMON_ATTRS,
+    doc = "Hermetic `buf lint` test over a buf_module.",
+    attrs = {
+        "module": _MODULE_ATTR,
+        "_buf": _BUF_ATTR,
+    },
     test = True,
+)
+
+def _buf_module_impl(ctx):
+    """Stage buf.yaml + buf.lock + protos into a TreeArtifact with workspace layout."""
+    out = ctx.actions.declare_directory(ctx.label.name)
+    lines = [
+        "set -euo pipefail",
+        'OUT="{}"'.format(out.path),
+        'rm -rf "$OUT"',
+        'mkdir -p "$OUT"',
+        'cp "{}" "$OUT/buf.yaml"'.format(ctx.file.config.path),
+        'cp "{}" "$OUT/buf.lock"'.format(ctx.file.lock.path),
+    ]
+    for src in ctx.files.srcs:
+        lines.append('mkdir -p "$OUT/$(dirname "{}")"'.format(src.short_path))
+        lines.append('cp "{}" "$OUT/{}"'.format(src.path, src.short_path))
+    ctx.actions.run_shell(
+        outputs = [out],
+        inputs = depset(direct = ctx.files.srcs + [ctx.file.config, ctx.file.lock]),
+        command = "\n".join(lines),
+        mnemonic = "BufModule",
+        progress_message = "Staging buf module %{label}",
+    )
+    return [DefaultInfo(files = depset([out]))]
+
+buf_module = rule(
+    implementation = _buf_module_impl,
+    doc = """Directory with `buf.yaml`, `buf.lock`, and protos at their workspace-relative paths.
+
+    Shared by Rust (`CONNECT_BUF_ROOT`), buf_generate, and buf_lint_test.
+    """,
+    attrs = {
+        "srcs": attr.label_list(
+            allow_files = [".proto"],
+            mandatory = True,
+            doc = "Protobuf sources (paths preserved under the module root).",
+        ),
+        "config": attr.label(
+            allow_single_file = True,
+            default = Label("//:buf.yaml"),
+        ),
+        "lock": attr.label(
+            allow_single_file = True,
+            default = Label("//:buf.lock"),
+        ),
+    },
 )

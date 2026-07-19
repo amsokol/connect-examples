@@ -1,27 +1,41 @@
 load("@bazel_lib//lib:write_source_files.bzl", "write_source_files")
-load("//bazel:buf.bzl", "buf_generate", "buf_lint_test")
+load("//bazel:buf.bzl", "buf_generate", "buf_lint_test", "buf_module")
+
+filegroup(
+    name = "protos",
+    srcs = glob(["*.proto"]),
+    visibility = ["//visibility:public"],
+)
+
+# Staged buf module shared by generate, lint, and Rust build.rs.
+buf_module(
+    name = "module",
+    srcs = [":protos"],
+    visibility = ["//visibility:public"],
+)
 
 buf_lint_test(
     name = "lint",
     size = "small",
-    srcs = glob(["*.proto"]),
+    module = ":module",
 )
 
 buf_generate(
     name = "go",
-    srcs = glob(["*.proto"]),
+    module = ":module",
     outdir = "go",
     plugins = [
         "//bazel:protoc-gen-go",
         "//bazel:protoc-gen-connect-go",
     ],
+    proto_dir = "api/v1",
     template = "//:buf.gen.go.yaml",
 )
 
 buf_generate(
     name = "python",
-    srcs = glob(["*.proto"]),
     include_imports = True,
+    module = ":module",
     outdir = "python/gen",
     template = "//:buf.gen.python.yaml",
 )
@@ -29,6 +43,12 @@ buf_generate(
 write_source_files(
     name = "generate",
     check_that_out_file_exists = False,
+    # Local Python imports create __pycache__ under python/gen; ignore it in the
+    # up-to-date check (gitignored, not part of generated output).
+    diff_args = [
+        "-x",
+        "__pycache__",
+    ],
     files = {
         "//go/api:v1": ":go",
         "//python:gen": ":python",

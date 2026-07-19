@@ -5,6 +5,7 @@ edition.workspace = true
 rust-version.workspace = true
 publish.workspace = true
 description = "Connect Echo server (connect-rust)"
+build = "../build.rs"
 
 [[bin]]
 name = "echo-server"

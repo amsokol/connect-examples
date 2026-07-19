@@ -1,0 +1,2 @@
+# Destination for shared build.rs (`exports_files` for cargo_build_script srcs).
+exports_files(["build.rs"])
