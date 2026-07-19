@@ -13,7 +13,7 @@ jobs:
     name: Bazel (build, test)
     runs-on: ubuntu-latest
     container:
-      image: eclipse-temurin:25-jdk
+      image: eclipse-temurin:25.0.3_9-jdk
     steps:
       - name: Install Bazelisk
         run: |
@@ -34,7 +34,7 @@ jobs:
           BAZELISK_VERSION: "v1.29.0"
 
       - name: Check out repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@v7.0.0
 
       # Do not `bazel run //api/v1:generate` here — that rewrites stubs and hides
       # drift. //api/v1:generate_*_test (via bazel test //...) fails if checked-in
@@ -52,18 +52,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@v7.0.0
 
       - name: Set up Go
-        uses: actions/setup-go@v7
+        uses: actions/setup-go@v7.0.0
         with:
           go-version-file: go.mod
           cache: true
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v6.3.0
         with:
-          python-version: "3.14"
+          python-version: "3.14.6"
           cache: pip
           cache-dependency-path: |
             requirements.txt
@@ -75,7 +75,7 @@ jobs:
           components: clippy
 
       - name: Cache Cargo
-        uses: Swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@v2.9.1
 
       - name: Download modules and install Go tools
         run: |
