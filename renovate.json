@@ -41,6 +41,17 @@
       "datasourceTemplate": "github-releases",
       "depNameTemplate": "bufbuild/buf",
       "packageNameTemplate": "bufbuild/buf"
+    },
+    {
+      "customType": "regex",
+      "description": "Update Bazelisk pin in CI (BAZELISK_VERSION)",
+      "managerFilePatterns": ["/(^|/)\\.github/workflows/[^/]+\\.ya?ml$/"],
+      "matchStrings": [
+        "BAZELISK_VERSION:\\s*\"(?<currentValue>v?[0-9][^\"\\s]*)\""
+      ],
+      "datasourceTemplate": "github-releases",
+      "depNameTemplate": "bazelbuild/bazelisk",
+      "packageNameTemplate": "bazelbuild/bazelisk"
     }
   ],
   "packageRules": [

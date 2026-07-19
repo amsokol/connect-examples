@@ -276,7 +276,7 @@ GitHub Actions (`.github/workflows/ci.yml`) runs two jobs in parallel on pushes 
 
 - **2-day** `minimumReleaseAge` quarantine for new releases
 - Security updates skip the quarantine
-- Covers Go modules, Cargo crates, pip-compile lockfiles, GitHub Actions, the `buf.toolchains` pin in `MODULE.bazel`, and `.bazelversion`
+- Covers Go modules, Cargo crates, pip-compile lockfiles, GitHub Actions, the `buf.toolchains` pin in `MODULE.bazel`, `.bazelversion`, and `BAZELISK_VERSION` in CI
 - Python: tracks pins in `requirements*.in`; regenerates `requirements*.txt` via pip-compile (does not bump lockfile-only transitive deps)
 - Rust: `buffa` is capped at `<0.9.0` until `connectrpc` supports it; `connectrpc*` + `buffa*` update as one **connect-rust** group
 
