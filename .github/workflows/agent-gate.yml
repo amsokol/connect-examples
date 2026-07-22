@@ -1,8 +1,6 @@
 # PR gate via Cursor Agent SDK (agent-gate / pr_gate).
-# Thin wrapper → amsokol/ai-devsecops-cursor reusable-agent-gate.
-#
-# Credentials: CURSOR_API_KEY, AGENT_GATE_MODEL (+ CURSOR_* fallbacks),
-# optional AGENT_GATE_GH_TOKEN / AGENT_GH_TOKEN, AGENT_RUNNER_REF.
+# Thin job + run-product-agent-gate composite (keeps check name
+# "Agent gate (PR review)" for the branch ruleset).
 
 name: agent-gate
 
@@ -60,10 +58,19 @@ jobs:
         github.event.pull_request.head.repo.full_name == github.repository &&
         github.event.comment.user.type != 'Bot'
       )
-    uses: amsokol/ai-devsecops-cursor/.github/workflows/reusable-agent-gate.yml@v0.3.2
-    with:
-      target_id: connect-examples
-      mode: ${{ github.event_name == 'workflow_dispatch' && inputs.mode || 'ship' }}
-      pr: ${{ inputs.pr || '' }}
-      runner_ref: ${{ vars.AGENT_RUNNER_REF || 'v0.3.2' }}
-    secrets: inherit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
+      AGENT_GATE_MODEL: ${{ vars.AGENT_GATE_MODEL || vars.CURSOR_AGENT_MODEL || vars.CURSOR_REV_MODEL || vars.CURSOR_VUL_MODEL || vars.CURSOR_DEP_MODEL }}
+      AGENT_SCM: github
+      GH_TOKEN: ${{ github.token }}
+      AGENT_GATE_GH_TOKEN: ${{ secrets.AGENT_GATE_GH_TOKEN || secrets.AGENT_GH_TOKEN }}
+    steps:
+      - name: Run product agent-gate
+        uses: amsokol/ai-devsecops-cursor/.github/actions/run-product-agent-gate@v0.3.4
+        with:
+          target_id: connect-examples
+          mode: ${{ github.event_name == 'workflow_dispatch' && inputs.mode || 'ship' }}
+          pr: ${{ inputs.pr || '' }}
+          runner_ref: ${{ vars.AGENT_RUNNER_REF || 'v0.3.4' }}
