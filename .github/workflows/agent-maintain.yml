@@ -27,7 +27,6 @@ permissions:
   contents: write
   pull-requests: write
   issues: write
-  workflows: write
 
 jobs:
   agent-maintain:
@@ -72,7 +71,7 @@ jobs:
         with:
           submodules: true
           fetch-depth: 0
-          token: ${{ github.token }}
+          token: ${{ secrets.AGENT_WORKFLOW_TOKEN || github.token }}
 
       - name: Configure git
         run: |
