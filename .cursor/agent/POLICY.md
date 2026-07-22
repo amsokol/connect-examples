@@ -38,6 +38,9 @@ under each folder (`detect`, `update`, `publish-time`, `advisories`, `caution`).
   buffa train, Bazel major rulesets, Buf CLI / BSR plugins that break codegen,
   `connectrpc` PyPI ↔ BSR Python plugins
 - Quarantine: **2 days** (see [`quarantine.md`](quarantine.md))
+- **Bazel couplings:** `go.MODULE.bazel` ← `go.mod`; `rust.MODULE.bazel` ←
+  `Cargo.toml`/`Cargo.lock`; `python.MODULE.bazel` ← `requirements.txt`. A bump
+  on those language files also requires Bazel verify (`library/maintain/verify.md`).
 - After BSR / codegen-related bumps, regenerate stubs (`buf generate` or
   `bazel run //api/v1:generate`) and commit drift; CI needs `BUF_TOKEN`
 - Python: bump `.in` then `pip-compile` (Python 3.14, `--strip-extras`); keep
