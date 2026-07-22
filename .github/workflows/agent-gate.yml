@@ -112,6 +112,20 @@ jobs:
           echo "number=${PR}" >> "$GITHUB_OUTPUT"
           echo "event=${{ github.event_name }} pr=${PR}"
 
+      # issue_comment payloads omit head.repo; always verify before checkout so a
+      # human comment on a fork PR cannot run the agent with CURSOR_API_KEY.
+      - name: Reject fork PR heads
+        run: |
+          set -euo pipefail
+          PR="${{ steps.pr.outputs.number }}"
+          HEAD_REPO="$(gh pr view "$PR" --repo "${{ github.repository }}" \
+            --json headRepository --jq '.headRepository.nameWithOwner')"
+          if [ "$HEAD_REPO" != "${{ github.repository }}" ]; then
+            echo "::error::Refusing agent-gate on fork PR head ($HEAD_REPO)"
+            exit 1
+          fi
+          echo "head repository=$HEAD_REPO (same-repo OK)"
+
       - name: Check secrets and vars
         run: |
           set -euo pipefail
