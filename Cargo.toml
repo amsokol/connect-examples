@@ -20,11 +20,11 @@ connectrpc = { version = "=0.8.1", default-features = false }
 connectrpc-health = { version = "=0.8.0", default-features = false }
 http = "=1.4.2"
 mimalloc = { git = "https://github.com/amsokol/mimalloc", tag = "v3.3.2" }
-serde = { version = "=1.0.228", default-features = false, features = [
+serde = { version = "=1.0.229", default-features = false, features = [
     "derive",
     "std",
 ] }
-tokio = { version = "=1.53.0", features = [
+tokio = { version = "=1.53.1", features = [
     "macros",
     "rt-multi-thread",
     "time",
