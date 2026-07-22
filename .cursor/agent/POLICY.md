@@ -15,8 +15,9 @@ under each folder (`detect`, `update`, `publish-time`, `advisories`, `caution`).
 - [`library/ecosystems/bazel/detect.md`](library/ecosystems/bazel/detect.md)
 - [`library/ecosystems/bsr/detect.md`](library/ecosystems/bsr/detect.md)
 
-**Not enabled:** Python `requirements.in` / pip-compile — still Renovate-managed;
-skills catalog has `python-uv` only (no pip-compile topic yet).
+**Not enabled:** Python `requirements.in` / pip-compile — skills catalog has
+`python-uv` only (no pip-compile topic yet); bump Python pins manually until
+then.
 
 ## Hotspots
 
@@ -24,7 +25,7 @@ skills catalog has `python-uv` only (no pip-compile topic yet).
 - Rust: `Cargo.toml`, `Cargo.lock`, `rust/`
 - Bazel: `MODULE.bazel`, `*.MODULE.bazel`, `MODULE.bazel.lock`
 - Buf: `buf.yaml`, `buf.lock`, `buf.gen.*.yaml`, `api/`
-- Existing `agent:` / Renovate holds and bundles (e.g. connect-rust / buffa train,
+- Existing `agent:` holds and bundles (e.g. connect-rust / buffa train,
   `mimalloc` git tag)
 
 ## Product notes
@@ -34,6 +35,6 @@ skills catalog has `python-uv` only (no pip-compile topic yet).
   `buf.gen.*.yaml`
 - High-impact majors need human OK or unlock: Go toolchain, connect-rust /
   buffa train, Bazel major rulesets, Buf CLI / BSR plugins that break codegen
-- Keep quarantine duration aligned with Renovate `minimumReleaseAge` (`2 days`)
+- Quarantine: **2 days** (see [`quarantine.md`](quarantine.md))
 - After BSR / codegen-related bumps, regenerate stubs (`buf generate` or
   `bazel run //api/v1:generate`) and commit drift; CI needs `BUF_TOKEN`
