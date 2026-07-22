@@ -157,6 +157,7 @@ jobs:
       contents: write
       pull-requests: write
       issues: write
+      workflows: write
     env:
       CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
       AGENT_MAINTAIN_MODEL: ${{ vars.AGENT_MAINTAIN_MODEL || vars.CURSOR_AGENT_MODEL || vars.CURSOR_DEP_MODEL || vars.CURSOR_REV_MODEL || vars.CURSOR_VUL_MODEL }}
