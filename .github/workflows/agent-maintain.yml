@@ -1,6 +1,9 @@
-# Manual maintain run via Cursor Agent SDK (agent-maintain / main_maintain).
-# Also runs automatically on push to main in ci.yml (ship → Issues / fix PRs).
-# Trigger: Actions → agent-maintain → dry-run | ship.
+# Maintain via Cursor Agent SDK (agent-maintain / main_maintain).
+#
+# Runs on:
+#   - workflow_dispatch (Actions → agent-maintain → dry-run | ship)
+#   - human comment on an Issue labeled `agent` (not a PR thread) → always ship
+# Also on push to main via ci.yml (ship).
 #
 # Credentials:
 #   Secret CURSOR_API_KEY
@@ -26,6 +29,8 @@ on:
           - dry-run
           - ship
         default: dry-run
+  issue_comment:
+    types: [created]
 
 concurrency:
   group: agent-maintain
@@ -38,6 +43,15 @@ permissions:
 
 jobs:
   agent-maintain:
+    name: Agent maintain (main)
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (
+        github.event_name == 'issue_comment' &&
+        !github.event.issue.pull_request &&
+        github.event.comment.user.type != 'Bot' &&
+        contains(join(github.event.issue.labels.*.name, ','), 'agent')
+      )
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     env:
@@ -50,6 +64,7 @@ jobs:
       GIT_AUTHOR_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
       GIT_COMMITTER_NAME: agent
       GIT_COMMITTER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+      AGENT_WAKE_ISSUE: ${{ github.event.issue.number }}
     steps:
       - name: Check secrets and vars
         run: |
@@ -62,7 +77,7 @@ jobs:
             echo "::error::Missing variable AGENT_MAINTAIN_MODEL (or CURSOR_*_MODEL fallback)"
             exit 1
           fi
-          echo "AGENT_MAINTAIN_MODEL=$AGENT_MAINTAIN_MODEL"
+          echo "AGENT_MAINTAIN_MODEL=$AGENT_MAINTAIN_MODEL wake_issue=${AGENT_WAKE_ISSUE:-none}"
 
       - name: Checkout
         uses: actions/checkout@v5
@@ -123,7 +138,7 @@ jobs:
           uv sync --frozen
 
       - name: Agent-maintain dry-run
-        if: inputs.mode == 'dry-run'
+        if: github.event_name == 'workflow_dispatch' && inputs.mode == 'dry-run'
         working-directory: ${{ runner.temp }}/ai-devsecops-cursor
         env:
           TARGET_PATH: ${{ github.workspace }}
@@ -131,7 +146,9 @@ jobs:
         run: uv run agent-maintain --dry-run
 
       - name: Agent-maintain ship
-        if: inputs.mode == 'ship'
+        if: >
+          github.event_name == 'issue_comment' ||
+          (github.event_name == 'workflow_dispatch' && inputs.mode == 'ship')
         working-directory: ${{ runner.temp }}/ai-devsecops-cursor
         env:
           TARGET_PATH: ${{ github.workspace }}
