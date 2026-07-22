@@ -8,7 +8,7 @@ plugins:
       - json=true
       - views=true
   # Connect stubs (BSR). Separate out: — both plugins emit <pkg>.rs.
-  - remote: buf.build/connectrpc/rust:v0.8.0
+  - remote: buf.build/connectrpc/rust:v0.8.1
     out: rust/api/gen/connect
     opt:
       - file_per_package
