@@ -30,7 +30,10 @@ buf.gen.python.yaml            # Python codegen (use with --include-imports)
 buf.gen.rust.yaml              # Rust codegen (BSR buffa + connectrpc/rust)
 .golangci.yaml                 # golangci-lint v2
 renovate.json                  # Renovate dependency updates (2-day quarantine)
-.github/workflows/ci.yml       # CI: buf, build, lint, vulns, test
+.github/workflows/ci.yml       # CI: buf, build, lint, vulns, test + agent-maintain on main
+.github/workflows/agent-gate.yml     # DevSecOps PR gate (agent-gate)
+.github/workflows/agent-maintain.yml # DevSecOps maintain (manual + via CI on main)
+.cursor/agent/                 # Agent policy overlay + skills submodule
 ```
 
 ## Prerequisites
@@ -257,9 +260,15 @@ cargo clippy -- -D warnings
 cargo test -p echo-server
 ```
 
+## DevSecOps agent
+
+**Agent gate** (`.github/workflows/agent-gate.yml`): on PR open/sync/reopen **and** on **human** PR conversation / review-thread comments, runs `agent-gate` as `github-actions[bot]` (latest run cancels prior; bot comments do not re-trigger). **Agent maintain** on push to `main` runs `agent-maintain`. Runner pin: `AGENT_RUNNER_REF` → [ai-devsecops-cursor](https://github.com/amsokol/ai-devsecops-cursor) **`v0.3.0`**. Policy overlay: `.cursor/agent/` + skills submodule `.cursor/agent/library` ([ai-devsecops-skills](https://github.com/amsokol/ai-devsecops-skills) @ `v0.1.7`).
+
+**Merge to `main`:** ruleset `agent-gate-merge` requires green status check **Agent gate (PR review)** and resolved review threads (required approving reviews: **0** — the bot cannot APPROVE its own maintain PRs).
+
 ## CI
 
-GitHub Actions (`.github/workflows/ci.yml`) runs two jobs in parallel on pushes to `main` and on pull requests:
+GitHub Actions (`.github/workflows/ci.yml`) runs Bazel and Native jobs in parallel on pushes to `main` and on pull requests. On push to `main` only, an **Agent maintain (main)** job also runs `agent-maintain`.
 
 **Bazel** — runs in `eclipse-temurin:25-jdk` with Bazelisk installed as `bazel` (version from `.bazelversion`):
 
