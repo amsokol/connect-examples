@@ -1,0 +1,3 @@
+[submodule ".cursor/agent/library"]
+	path = .cursor/agent/library
+	url = https://github.com/amsokol/ai-devsecops-skills.git

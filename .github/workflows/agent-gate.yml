@@ -1,0 +1,184 @@
+# PR gate via Cursor Agent SDK (agent-gate / pr_gate).
+#
+# Runs automatically on:
+#   - pull_request (opened / synchronize / reopened)
+#   - issue_comment on a PR (conversation comments) from a non-bot user
+#   - pull_request_review_comment (inline review threads) from a non-bot user
+# Manual: Actions → agent-gate → dry-run | ship + PR number
+#
+# Concurrency: one run per PR; a newer event cancels an in-progress run so the
+# latest run sees all comments to date. Bot comments do not trigger (no loops).
+#
+# Credentials:
+#   Secret CURSOR_API_KEY
+#   Variable AGENT_GATE_MODEL (fallback: CURSOR_AGENT_MODEL, CURSOR_REV_MODEL, …)
+#   Secret AGENT_GATE_GH_TOKEN — optional classic PAT (`repo`) for
+#     GraphQL resolveReviewThread only (fallback: AGENT_GH_TOKEN)
+#   Variable AGENT_RUNNER_REF — optional pin of amsokol/ai-devsecops-cursor (default: v0.3.0)
+#
+# Identity: GH_TOKEN is always github.token → reviews as github-actions[bot].
+#
+# Repo Settings → Actions → General → Workflow permissions:
+#   - ✅ Allow GitHub Actions to create and approve pull requests
+
+name: agent-gate
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "dry-run (plan only) or ship (post review / APPROVE)"
+        required: true
+        type: choice
+        options:
+          - dry-run
+          - ship
+        default: dry-run
+      pr:
+        description: "Pull request number"
+        required: true
+        type: string
+
+concurrency:
+  group: >-
+    agent-gate-pr-${{
+      github.event.pull_request.number ||
+      github.event.issue.number ||
+      inputs.pr
+    }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  agent-gate:
+    name: Agent gate (PR review)
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (
+        github.event_name == 'pull_request' &&
+        github.event.pull_request.head.repo.full_name == github.repository
+      ) ||
+      (
+        github.event_name == 'issue_comment' &&
+        github.event.issue.pull_request &&
+        github.event.comment.user.type != 'Bot'
+      ) ||
+      (
+        github.event_name == 'pull_request_review_comment' &&
+        github.event.pull_request.head.repo.full_name == github.repository &&
+        github.event.comment.user.type != 'Bot'
+      )
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
+      AGENT_GATE_MODEL: ${{ vars.AGENT_GATE_MODEL || vars.CURSOR_AGENT_MODEL || vars.CURSOR_REV_MODEL || vars.CURSOR_VUL_MODEL || vars.CURSOR_DEP_MODEL }}
+      AGENT_SCM: github
+      GH_TOKEN: ${{ github.token }}
+      AGENT_GATE_GH_TOKEN: ${{ secrets.AGENT_GATE_GH_TOKEN || secrets.AGENT_GH_TOKEN }}
+    steps:
+      - name: Resolve PR number
+        id: pr
+        run: |
+          set -euo pipefail
+          case "${{ github.event_name }}" in
+            workflow_dispatch)
+              PR="${{ inputs.pr }}"
+              ;;
+            pull_request|pull_request_review_comment)
+              PR="${{ github.event.pull_request.number }}"
+              ;;
+            issue_comment)
+              PR="${{ github.event.issue.number }}"
+              ;;
+            *)
+              echo "::error::Unsupported event: ${{ github.event_name }}"
+              exit 1
+              ;;
+          esac
+          if [ -z "${PR}" ]; then
+            echo "::error::Missing PR number"
+            exit 1
+          fi
+          echo "number=${PR}" >> "$GITHUB_OUTPUT"
+          echo "event=${{ github.event_name }} pr=${PR}"
+
+      # issue_comment payloads omit head.repo; always verify before checkout so a
+      # human comment on a fork PR cannot run the agent with CURSOR_API_KEY.
+      - name: Reject fork PR heads
+        run: |
+          set -euo pipefail
+          PR="${{ steps.pr.outputs.number }}"
+          HEAD_REPO="$(gh pr view "$PR" --repo "${{ github.repository }}" \
+            --json headRepository --jq '.headRepository.nameWithOwner')"
+          if [ "$HEAD_REPO" != "${{ github.repository }}" ]; then
+            echo "::error::Refusing agent-gate on fork PR head ($HEAD_REPO)"
+            exit 1
+          fi
+          echo "head repository=$HEAD_REPO (same-repo OK)"
+
+      - name: Check secrets and vars
+        run: |
+          set -euo pipefail
+          if [ -z "${CURSOR_API_KEY:-}" ]; then
+            echo "::error::Missing secret CURSOR_API_KEY"
+            exit 1
+          fi
+          if [ -z "${AGENT_GATE_MODEL:-}" ]; then
+            echo "::error::Missing variable AGENT_GATE_MODEL (or CURSOR_*_MODEL fallback)"
+            exit 1
+          fi
+          echo "AGENT_GATE_MODEL=$AGENT_GATE_MODEL pr=${{ steps.pr.outputs.number }}"
+
+      - name: Checkout PR head
+        uses: actions/checkout@v5
+        with:
+          submodules: true
+          fetch-depth: 0
+          token: ${{ github.token }}
+          ref: refs/pull/${{ steps.pr.outputs.number }}/head
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: false
+
+      - name: Install agent runner
+        env:
+          RUNNER_REF: ${{ vars.AGENT_RUNNER_REF || 'v0.3.0' }}
+        run: |
+          set -euo pipefail
+          git clone --depth 1 --branch "$RUNNER_REF" \
+            https://github.com/amsokol/ai-devsecops-cursor.git \
+            "${{ runner.temp }}/ai-devsecops-cursor"
+          cd "${{ runner.temp }}/ai-devsecops-cursor"
+          uv sync --frozen
+
+      - name: Agent-gate dry-run
+        if: github.event_name == 'workflow_dispatch' && inputs.mode == 'dry-run'
+        working-directory: ${{ runner.temp }}/ai-devsecops-cursor
+        env:
+          TARGET_PATH: ${{ github.workspace }}
+          TARGET_ID: connect-examples
+          AGENT_PR: ${{ steps.pr.outputs.number }}
+        run: uv run agent-gate --pr "${{ steps.pr.outputs.number }}" --dry-run
+
+      - name: Agent-gate ship
+        if: >
+          github.event_name != 'workflow_dispatch' ||
+          inputs.mode == 'ship'
+        working-directory: ${{ runner.temp }}/ai-devsecops-cursor
+        env:
+          TARGET_PATH: ${{ github.workspace }}
+          TARGET_ID: connect-examples
+          AGENT_PR: ${{ steps.pr.outputs.number }}
+        run: uv run agent-gate --pr "${{ steps.pr.outputs.number }}"

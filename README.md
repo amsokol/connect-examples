@@ -29,8 +29,10 @@ buf.gen.go.yaml                # Go codegen
 buf.gen.python.yaml            # Python codegen (use with --include-imports)
 buf.gen.rust.yaml              # Rust codegen (BSR buffa + connectrpc/rust)
 .golangci.yaml                 # golangci-lint v2
-renovate.json                  # Renovate dependency updates (2-day quarantine)
-.github/workflows/ci.yml       # CI: buf, build, lint, vulns, test
+.github/workflows/ci.yml       # CI: buf, build, lint, vulns, test + agent-maintain on main
+.github/workflows/agent-gate.yml     # DevSecOps PR gate (agent-gate)
+.github/workflows/agent-maintain.yml # DevSecOps maintain (manual + via CI on main)
+.cursor/agent/                 # Agent policy overlay + skills submodule
 ```
 
 ## Prerequisites
@@ -257,9 +259,15 @@ cargo clippy -- -D warnings
 cargo test -p echo-server
 ```
 
+## DevSecOps agent
+
+**Agent gate** (`.github/workflows/agent-gate.yml`): on PR open/sync/reopen **and** on **human** PR conversation / review-thread comments, runs `agent-gate` as `github-actions[bot]` (latest run cancels prior; bot comments do not re-trigger). **Agent maintain** on push to `main` runs `agent-maintain`. Runner pin: `AGENT_RUNNER_REF` → [ai-devsecops-cursor](https://github.com/amsokol/ai-devsecops-cursor) **`v0.3.0`**. Policy overlay: `.cursor/agent/` + skills submodule `.cursor/agent/library` ([ai-devsecops-skills](https://github.com/amsokol/ai-devsecops-skills) @ `v0.1.7`).
+
+**Merge to `main`:** ruleset `agent-gate-merge` requires green status check **Agent gate (PR review)** and resolved review threads (required approving reviews: **0** — the bot cannot APPROVE its own maintain PRs).
+
 ## CI
 
-GitHub Actions (`.github/workflows/ci.yml`) runs two jobs in parallel on pushes to `main` and on pull requests:
+GitHub Actions (`.github/workflows/ci.yml`) runs Bazel and Native jobs in parallel on pushes to `main` and on pull requests. On push to `main` only, an **Agent maintain (main)** job also runs `agent-maintain`.
 
 **Bazel** — runs in `eclipse-temurin:25-jdk` with Bazelisk installed as `bazel` (version from `.bazelversion`):
 
@@ -283,19 +291,10 @@ GitHub Actions (`.github/workflows/ci.yml`) runs two jobs in parallel on pushes 
 - Go Protobuf uses the **opaque** API (`features.(pb.go).api_level = API_OPAQUE`).
 - Connect Go codegen uses `package_suffix=` so handlers/clients live next to the `.pb.go` types.
 - Python uses [connectrpc](https://pypi.org/project/connectrpc/) with [protobuf-py](https://protobufpy.com) (Buf `bufbuild/py` + `connectrpc/py` plugins).
-- Python pins in `requirements*.in` use exact `==` versions so Renovate bumps are explicit.
+- Python pins in `requirements*.in` use exact `==` versions; refresh locks with `pip-compile`.
 - Rust uses a Cargo workspace (`Cargo.toml` at the repo root); crate pins live in `[workspace.dependencies]`. Checked-in stubs live in `rust/api/gen/` (via `buf.gen.rust.yaml`: BSR `buffa` + `connectrpc/rust` with `file_per_package`) and are exposed by the `api` crate.
 
-## Dependency updates (Renovate)
+## Dependency updates
 
-[Renovate](https://docs.renovatebot.com/) is configured in `renovate.json`:
-
-- **2-day** `minimumReleaseAge` quarantine for new releases
-- Security updates skip the quarantine
-- Covers Go modules, Cargo crates, pip-compile lockfiles, GitHub Actions, the `buf.toolchains` pin in `MODULE.bazel`, `.bazelversion`, `BAZELISK_VERSION` in CI, BSR remote plugin pins in `buf.gen.*.yaml`, and the `protovalidate` pin in `buf.yaml` (via GitHub releases)
-- Python: tracks pins in `requirements*.in`; regenerates `requirements*.txt` via pip-compile (does not bump lockfile-only transitive deps)
-- Rust: `buffa` is capped at `<0.9.0` until `connectrpc` supports it; `connectrpc*` + `buffa*` (+ BSR rust plugins) update as one **connect-rust** group
-- BSR Go/Python plugins group as **buf plugins**; `buf.yaml` module deps as **buf modules** (verify the version exists on `buf.build` — BSR can lag GitHub)
-- After Renovate bumps `buf.yaml`, workflow `renovate-buf-lock.yml` runs `buf dep update` and commits `buf.lock` (hosted Renovate App cannot run `postUpgradeTasks`)
-
-Install the [Renovate GitHub App](https://github.com/apps/renovate) on this repository to enable it.
+Dependency policy and bumps are owned by the DevSecOps agent (`.cursor/agent/` +
+skills submodule). Quarantine: **2 days** (see `.cursor/agent/quarantine.md`).
