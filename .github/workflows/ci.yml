@@ -225,7 +225,7 @@ jobs:
 
       - name: Install agent runner
         id: runner
-        uses: amsokol/ai-devsecops-cursor/.github/actions/install-agent-runner@v0.3.5
+        uses: amsokol/ai-devsecops-cursor/.github/actions/install-agent-runner@v0.3.6
 
       - name: Agent-maintain ship
         working-directory: ${{ steps.runner.outputs.path }}

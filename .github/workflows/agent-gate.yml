@@ -68,7 +68,7 @@ jobs:
       AGENT_GATE_GH_TOKEN: ${{ secrets.AGENT_GATE_GH_TOKEN || secrets.AGENT_GH_TOKEN }}
     steps:
       - name: Run product agent-gate
-        uses: amsokol/ai-devsecops-cursor/.github/actions/run-product-agent-gate@v0.3.5
+        uses: amsokol/ai-devsecops-cursor/.github/actions/run-product-agent-gate@v0.3.6
         with:
           target_id: connect-examples
           mode: ${{ github.event_name == 'workflow_dispatch' && inputs.mode || 'ship' }}
