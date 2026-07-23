@@ -552,8 +552,8 @@ checksum = "cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98"
 
 [[package]]
 name = "mimalloc"
-version = "3.3.2"
-source = "git+https://github.com/amsokol/mimalloc?tag=v3.3.2#e7e2b25dd509196a060030359060b761c6cd7bc7"
+version = "3.4.3"
+source = "git+https://github.com/amsokol/mimalloc?tag=v3.4.3#0d18ab48443de0ecaa730d6fdf31968ed27682dd"
 dependencies = [
  "cc",
 ]
