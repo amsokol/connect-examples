@@ -261,7 +261,7 @@ cargo test -p echo-server
 
 ## DevSecOps agent
 
-**Agent gate** (`.github/workflows/agent-gate.yml`): on PR open/sync/reopen **and** on **human** PR conversation / review-thread comments, runs `agent-gate` as `github-actions[bot]` (latest run cancels prior; bot comments do not re-trigger). **Agent maintain** on push to `main` runs `agent-maintain`. Runner pin: `uses: ….3.10` → [ai-devsecops-cursor](https://github.com/amsokol/ai-devsecops-cursor). Policy overlay: `.cursor/agent/` + skills submodule `.cursor/agent/library` ([ai-devsecops-skills](https://github.com/amsokol/ai-devsecops-skills) @ `v0.1.13`).
+**Agent gate** (`.github/workflows/agent-gate.yml`): on PR open/sync/reopen **and** on **human** PR conversation / review-thread comments, runs `agent-gate` as `github-actions[bot]` (latest run cancels prior; bot comments do not re-trigger). **Agent maintain** on push to `main` runs `agent-maintain`. Runner pin: `uses: …@v0.3.10` → [ai-devsecops-cursor](https://github.com/amsokol/ai-devsecops-cursor). Policy overlay: `.cursor/agent/` + skills submodule `.cursor/agent/library` ([ai-devsecops-skills](https://github.com/amsokol/ai-devsecops-skills) @ `v0.1.13`).
 
 **Merge to `main`:** ruleset `agent-gate-merge` requires green status check **Agent gate (PR review)** and resolved review threads (required approving reviews: **0** — the bot cannot APPROVE its own maintain PRs).
 
