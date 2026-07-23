@@ -19,7 +19,7 @@ api = { path = "rust/api" }
 connectrpc = { version = "=0.8.1", default-features = false }
 connectrpc-health = { version = "=0.8.0", default-features = false }
 http = "=1.4.2"
-mimalloc = { git = "https://github.com/amsokol/mimalloc", tag = "v3.3.2" }
+mimalloc = { git = "https://github.com/amsokol/mimalloc", tag = "v3.4.3" }
 serde = { version = "=1.0.229", default-features = false, features = [
     "derive",
     "std",
