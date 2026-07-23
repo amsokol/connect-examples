@@ -1,4 +1,4 @@
-# PR gate — thin product wrapper + run-product-agent-gate@v0.3.13
+# PR gate — thin product wrapper + run-product-agent-gate@v0.3.15
 # Job name "Agent gate (PR review)" must stay exact (ruleset required check).
 # Comments / off-ref workflow_dispatch re-dispatch onto the PR head branch so
 # the required check attaches to the PR head SHA (not main).
@@ -175,7 +175,7 @@ jobs:
       AGENT_GATE_GH_TOKEN: ${{ secrets.AGENT_GATE_GH_TOKEN || secrets.AGENT_GH_TOKEN }}
     steps:
       - name: Run product agent-gate
-        uses: amsokol/ai-devsecops-cursor/.github/actions/run-product-agent-gate@v0.3.13
+        uses: amsokol/ai-devsecops-cursor/.github/actions/run-product-agent-gate@v0.3.15
         with:
           target_id: connect-examples
           mode: ${{ github.event_name == 'workflow_dispatch' && inputs.mode || 'ship' }}
