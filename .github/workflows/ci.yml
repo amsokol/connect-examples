@@ -230,7 +230,7 @@ jobs:
 
       - name: Install agent runner
         env:
-          RUNNER_REF: ${{ vars.AGENT_RUNNER_REF || 'v0.3.0' }}
+          RUNNER_REF: ${{ vars.AGENT_RUNNER_REF || 'v0.3.7' }}
         run: |
           set -euo pipefail
           git clone --depth 1 --branch "$RUNNER_REF" \

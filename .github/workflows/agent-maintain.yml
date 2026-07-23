@@ -8,7 +8,7 @@
 # Credentials:
 #   Secret CURSOR_API_KEY
 #   Variable AGENT_MAINTAIN_MODEL (fallback: CURSOR_AGENT_MODEL, CURSOR_DEP_MODEL, …)
-#   Variable AGENT_RUNNER_REF — optional pin of amsokol/ai-devsecops-cursor (default: v0.3.0)
+#   Variable AGENT_RUNNER_REF — optional pin of amsokol/ai-devsecops-cursor (default: v0.3.7)
 #   Secret BUF_TOKEN — BSR remote codegen when verify regenerates stubs
 #
 # Identity: GH_TOKEN is always github.token → github-actions[bot].
@@ -65,6 +65,7 @@ jobs:
       GIT_COMMITTER_NAME: agent
       GIT_COMMITTER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
       AGENT_WAKE_ISSUE: ${{ github.event.issue.number }}
+      AGENT_WAKE_COMMENT: ${{ github.event.comment.body }}
     steps:
       - name: Check secrets and vars
         run: |
@@ -128,7 +129,7 @@ jobs:
 
       - name: Install agent runner
         env:
-          RUNNER_REF: ${{ vars.AGENT_RUNNER_REF || 'v0.3.0' }}
+          RUNNER_REF: ${{ vars.AGENT_RUNNER_REF || 'v0.3.7' }}
         run: |
           set -euo pipefail
           git clone --depth 1 --branch "$RUNNER_REF" \
