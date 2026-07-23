@@ -182,7 +182,7 @@ jobs:
           echo "AGENT_MAINTAIN_MODEL=$AGENT_MAINTAIN_MODEL"
 
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           submodules: true
           fetch-depth: 0
