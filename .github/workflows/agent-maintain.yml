@@ -1,4 +1,4 @@
-# Maintain — thin product wrapper; runner install via composite @v0.3.11
+# Maintain — thin product wrapper; runner install via composite @v0.3.12
 # Product toolchain stays here (Go / Python / Rust / Buf). Also on push to
 # main via ci.yml (ship).
 
@@ -110,7 +110,7 @@ jobs:
 
       - name: Install agent runner
         id: runner
-        uses: amsokol/ai-devsecops-cursor/.github/actions/install-agent-runner@v0.3.11
+        uses: amsokol/ai-devsecops-cursor/.github/actions/install-agent-runner@v0.3.12
 
       - name: Agent-maintain dry-run
         if: github.event_name == 'workflow_dispatch' && inputs.mode == 'dry-run'
