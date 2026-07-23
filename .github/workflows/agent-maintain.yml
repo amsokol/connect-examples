@@ -1,6 +1,6 @@
 # Maintain — thin product wrapper; runner install via composite @v0.3.13
-# Product toolchain stays here (Go / Python / Rust / Buf). Also on push to
-# main via ci.yml (ship).
+# Product toolchain stays here (Go / Python / Rust / Buf).
+# Triggers: workflow_dispatch + issue-wake only (no push-to-main).
 
 name: agent-maintain
 
