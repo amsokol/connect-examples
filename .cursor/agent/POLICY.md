@@ -25,7 +25,8 @@ under each folder (`detect`, `update`, `publish-time`, `advisories`, `caution`).
 - Buf: `buf.yaml`, `buf.lock`, `buf.gen.*.yaml`, `api/`
 - Python: `requirements.in`, `requirements-dev.in`, `requirements.txt`,
   `requirements-dev.txt`
-- GitHub Actions: `.github/workflows/` (`uses:` pins, `BAZELISK_VERSION` in CI)
+- GitHub Actions: `.github/workflows/` (`uses:` pins, container images,
+  `BAZELISK_VERSION` in CI)
 - Existing `agent:` holds and bundles (e.g. connect-rust / buffa train,
   `mimalloc` git tag)
 
@@ -33,10 +34,14 @@ under each folder (`detect`, `update`, `publish-time`, `advisories`, `caution`).
 
 - Gate: changed pins in `go.mod` / `go.sum`, workspace `Cargo.toml` /
   `Cargo.lock`, `MODULE.bazel` / includes / lock, `buf.yaml` / `buf.lock` /
-  `buf.gen.*.yaml`, Python `.in`/locks, workflow action/tool pins
-- High-impact majors need human OK or unlock: Go toolchain, connect-rust /
-  buffa train, Bazel major rulesets, Buf CLI / BSR plugins that break codegen,
-  `connectrpc` PyPI ↔ BSR Python plugins
+  `buf.gen.*.yaml`, Python `.in`/locks, workflow action/tool/image pins
+- Maintain: scan Go / Rust / Bazel / Buf / Python / workflows
+- Catalog majors (semver, Actions major-line jumps, runtime images) → Issue +
+  human unlock before routine PR
+  ([`library/policy/grouping.md`](library/policy/grouping.md)). Extra attention /
+  bundles: Go toolchain, connect-rust / buffa train, Bazel major rulesets,
+  Buf CLI / BSR plugins that break codegen, `connectrpc` PyPI ↔ BSR Python
+  plugins
 - Quarantine: **2 days** (see [`quarantine.md`](quarantine.md))
 - After BSR / codegen-related bumps, regenerate stubs (`buf generate` or
   `bazel run //api/v1:generate`) and commit drift; CI needs `BUF_TOKEN`
