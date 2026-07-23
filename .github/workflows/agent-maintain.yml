@@ -1,20 +1,6 @@
-# Maintain via Cursor Agent SDK (agent-maintain / main_maintain).
-#
-# Runs on:
-#   - workflow_dispatch (Actions → agent-maintain → dry-run | ship)
-#   - human comment on an Issue labeled `agent` (not a PR thread) → always ship
-# Also on push to main via ci.yml (ship).
-#
-# Credentials:
-#   Secret CURSOR_API_KEY
-#   Variable AGENT_MAINTAIN_MODEL (fallback: CURSOR_AGENT_MODEL, CURSOR_DEP_MODEL, …)
-#   Variable AGENT_RUNNER_REF — optional pin of amsokol/ai-devsecops-cursor (default: v0.3.0)
-#   Secret BUF_TOKEN — BSR remote codegen when verify regenerates stubs
-#
-# Identity: GH_TOKEN is always github.token → github-actions[bot].
-#
-# Repo Settings → Actions → General → Workflow permissions:
-#   - ✅ Allow GitHub Actions to create and approve pull requests
+# Maintain — thin product wrapper; runner install via composite @v0.3.9
+# Product toolchain stays here (Go / Python / Rust / Buf). Also on push to
+# main via ci.yml (ship).
 
 name: agent-maintain
 
@@ -65,6 +51,7 @@ jobs:
       GIT_COMMITTER_NAME: agent
       GIT_COMMITTER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
       AGENT_WAKE_ISSUE: ${{ github.event.issue.number }}
+      AGENT_WAKE_COMMENT: ${{ github.event.comment.body }}
     steps:
       - name: Check secrets and vars
         run: |
@@ -121,25 +108,13 @@ jobs:
           go mod download
           go install tool
 
-      - name: Setup uv
-        uses: astral-sh/setup-uv@v7
-        with:
-          enable-cache: false
-
       - name: Install agent runner
-        env:
-          RUNNER_REF: ${{ vars.AGENT_RUNNER_REF || 'v0.3.0' }}
-        run: |
-          set -euo pipefail
-          git clone --depth 1 --branch "$RUNNER_REF" \
-            https://github.com/amsokol/ai-devsecops-cursor.git \
-            "${{ runner.temp }}/ai-devsecops-cursor"
-          cd "${{ runner.temp }}/ai-devsecops-cursor"
-          uv sync --frozen
+        id: runner
+        uses: amsokol/ai-devsecops-cursor/.github/actions/install-agent-runner@v0.3.9
 
       - name: Agent-maintain dry-run
         if: github.event_name == 'workflow_dispatch' && inputs.mode == 'dry-run'
-        working-directory: ${{ runner.temp }}/ai-devsecops-cursor
+        working-directory: ${{ steps.runner.outputs.path }}
         env:
           TARGET_PATH: ${{ github.workspace }}
           TARGET_ID: connect-examples
@@ -149,7 +124,7 @@ jobs:
         if: >
           github.event_name == 'issue_comment' ||
           (github.event_name == 'workflow_dispatch' && inputs.mode == 'ship')
-        working-directory: ${{ runner.temp }}/ai-devsecops-cursor
+        working-directory: ${{ steps.runner.outputs.path }}
         env:
           TARGET_PATH: ${{ github.workspace }}
           TARGET_ID: connect-examples
