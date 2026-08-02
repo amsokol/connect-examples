@@ -46,9 +46,7 @@ func main() {
 		&req,
 	)
 	if err != nil {
-		log.Println(err)
-
-		return
+		log.Fatal(err)
 	}
 
 	log.Println(res.GetMessage())
