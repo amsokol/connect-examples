@@ -7,12 +7,12 @@ module(
     version = "0.1.0",
 )
 
-bazel_dep(name = "bazel_lib", version = "3.5.0")
-bazel_dep(name = "gazelle", version = "0.51.3")
+bazel_dep(name = "bazel_lib", version = "3.7.0")
+bazel_dep(name = "gazelle", version = "0.52.2")
 bazel_dep(name = "rules_buf", version = "0.5.4")
-bazel_dep(name = "rules_go", version = "0.61.1")
+bazel_dep(name = "rules_go", version = "0.62.0")
 bazel_dep(name = "rules_python", version = "2.2.0")
-bazel_dep(name = "rules_rust", version = "0.71.3")
+bazel_dep(name = "rules_rust", version = "0.73.0")
 
 # Prebuilt Buf CLI (buf cannot be built via go_deps — bufprivateusage guard).
 # Codegen plugins are BSR remotes in buf.gen.*.yaml.

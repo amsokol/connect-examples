@@ -17,11 +17,10 @@ Cargo.toml                     # Rust workspace root
 rust/api/                      # generated Rust buffa + Connect stubs (library crate)
 rust/echo/client/              # Rust Echo client ([connect-rust](https://github.com/connectrpc/connect-rust))
 rust/echo/server/              # Rust Echo server (HTTP/1.1 + h2c + request logging)
-requirements.in                # Python dependency pins (source)
-requirements.txt               # locked Python deps (pip-compile)
-requirements-dev.in            # Python dev tools (ruff, pip-audit)
-requirements-dev.txt           # locked Python dev deps
-ruff.toml                      # Ruff linter/formatter config
+pyproject.toml                 # Python project + deps (uv) and Ruff config
+uv.lock                        # locked Python deps (uv)
+requirements.txt               # exported runtime lock for Bazel rules_python
+.python-version                # local/CI Python interpreter for uv
 pyrightconfig.json             # basedpyright / Pyright (venv + import paths)
 .vscode/settings.json          # Cursor/VS Code: Python venv, Ruff, basedpyright
 buf.yaml                       # Buf lint config
@@ -38,7 +37,7 @@ buf.gen.rust.yaml              # Rust codegen (BSR buffa + connectrpc/rust)
 ## Prerequisites
 
 - Go 1.26+
-- Python 3.10+
+- Python 3.10+ ([uv](https://docs.astral.sh/uv/) for the local/native workflow)
 - Rust 1.88+ (for the Rust client; [connect-rust](https://github.com/connectrpc/connect-rust) MSRV)
 
 Go tools used by this repo are declared in `go.mod` and run via `go tool` (install binaries with `go install tool`):
@@ -85,7 +84,7 @@ go tool buf generate --template buf.gen.rust.yaml
 
 ## Bazel
 
-Requires [Bazel](https://bazel.build/) / [Bazelisk](https://github.com/bazelbuild/bazelisk) (version pinned in `.bazelversion`). Go SDK and module deps come from `go.mod` via `rules_go` (`go.MODULE.bazel`). Python toolchain and pip deps come from `requirements.txt` via `rules_python` (`python.MODULE.bazel`). Rust toolchain and crates come from `Cargo.toml` / `Cargo.lock` via `rules_rust` (`rust.MODULE.bazel`). Buf CLI is the prebuilt binary from `rules_buf`; Go / Python / Rust codegen use BSR remotes (`buf.gen.*.yaml`). BSR pins stay in `buf.lock` only.
+Requires [Bazel](https://bazel.build/) / [Bazelisk](https://github.com/bazelbuild/bazelisk) (version pinned in `.bazelversion`). Go SDK and module deps come from `go.mod` via `rules_go` (`go.MODULE.bazel`). Python toolchain and pip deps come from exported `requirements.txt` via `rules_python` (`python.MODULE.bazel`); pins live in `pyproject.toml` / `uv.lock`. Rust toolchain and crates come from `Cargo.toml` / `Cargo.lock` via `rules_rust` (`rust.MODULE.bazel`). Buf CLI is the prebuilt binary from `rules_buf`; Go / Python / Rust codegen use BSR remotes (`buf.gen.*.yaml`). BSR pins stay in `buf.lock` only.
 
 ### 1. Lint
 
@@ -192,19 +191,17 @@ The Go client builds one shared `http.Client` with `http2.Transport` (h2c). Reus
 
 ### Python client
 
-Bazel (toolchain + pip from `python.MODULE.bazel` / `requirements.txt`):
+Bazel (toolchain + pip from `python.MODULE.bazel` / exported `requirements.txt`):
 
 ```bash
 bazel run //python/echo/client
 ```
 
-Or with a local venv:
+Or with uv (creates `.venv` from `uv.lock`):
 
 ```bash
-python3 -m venv python/.venv
-source python/.venv/bin/activate
-pip install -r requirements.txt -r requirements-dev.txt
-python -m python.echo.client
+uv sync --group dev
+uv run python -m python.echo.client
 ```
 
 Expected output:
@@ -217,14 +214,15 @@ Hello, Jane!
 
 The client uses Connect over HTTP/2 cleartext (h2c) via `pyqwest.SyncHTTPTransport(http_version=HTTPVersion.HTTP2)`, matching the Go and Rust clients. For HTTP/1.1, omit `http_version` or set `HTTPVersion.HTTP1` in `python/echo/client/__main__.py`.
 
-To refresh locked deps after editing `requirements.in` or `requirements-dev.in` (with the venv activated):
+To refresh locked deps after editing `pyproject.toml`:
 
 ```bash
-pip install -U pip-tools
-pip-compile requirements.in -o requirements.txt
-pip-compile requirements-dev.in -o requirements-dev.txt
-pip install -r requirements.txt -r requirements-dev.txt
+uv lock
+uv export --frozen --no-dev --no-hashes --no-emit-project -o requirements.txt
+uv sync --group dev
 ```
+
+Keep `uv.lock` and the Bazel export (`requirements.txt`) in the same change-set — `rules_python` still consumes `requirements.txt`, not `uv.lock`.
 
 ### Rust client
 
@@ -252,9 +250,9 @@ bazel test //api/v1:lint
 go tool golangci-lint run ./...
 go tool govulncheck ./...
 go test ./...
-ruff check python
-ruff format --check python/echo
-pip-audit -r requirements.txt -r requirements-dev.txt
+uv run ruff check python
+uv run ruff format --check python/echo
+uv run pip-audit
 cargo clippy -- -D warnings
 cargo test -p echo-server
 ```
@@ -281,8 +279,8 @@ GitHub Actions (`.github/workflows/ci.yml`) runs Bazel and Native jobs in parall
 3. `go build ./...`
 4. `cargo clippy` / `cargo test -p echo-server` (Rust)
 5. `go tool golangci-lint run ./...`
-6. `ruff check` / `ruff format --check` (Python)
-7. `go tool govulncheck ./...` and `pip-audit` on `requirements.txt` / `requirements-dev.txt`
+6. `ruff check` / `ruff format --check` (Python via `uv`)
+7. `go tool govulncheck ./...` and `uv run pip-audit`
 8. `go test ./...`
 
 ## Notes
@@ -291,7 +289,7 @@ GitHub Actions (`.github/workflows/ci.yml`) runs Bazel and Native jobs in parall
 - Go Protobuf uses the **opaque** API (`features.(pb.go).api_level = API_OPAQUE`).
 - Connect Go codegen uses `package_suffix=` so handlers/clients live next to the `.pb.go` types.
 - Python uses [connectrpc](https://pypi.org/project/connectrpc/) with [protobuf-py](https://protobufpy.com) (Buf `bufbuild/py` + `connectrpc/py` plugins).
-- Python pins in `requirements*.in` use exact `==` versions; refresh locks with `pip-compile`.
+- Python pins live in `pyproject.toml`; `uv.lock` is the resolver lock. Refresh with `uv lock`, then re-export `requirements.txt` for Bazel (`uv export …` above).
 - Rust uses a Cargo workspace (`Cargo.toml` at the repo root); crate pins live in `[workspace.dependencies]`. Checked-in stubs live in `rust/api/gen/` (via `buf.gen.rust.yaml`: BSR `buffa` + `connectrpc/rust` with `file_per_package`) and are exposed by the `api` crate.
 
 ## Dependency updates

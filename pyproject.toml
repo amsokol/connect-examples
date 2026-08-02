@@ -1,0 +1,51 @@
+[project]
+name = "connect-examples"
+version = "0.1.0"
+description = "Connect RPC examples (Python Echo client)"
+requires-python = ">=3.10"
+license = "Apache-2.0"
+dependencies = ["connectrpc==0.11.1"]
+
+[build-system]
+requires = ["hatchling==1.31.0"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["python"]
+
+[tool.uv]
+package = true
+
+[dependency-groups]
+dev = ["pip-audit==2.10.1", "ruff==0.16.1"]
+
+[tool.ruff]
+target-version = "py310"
+src = ["python"]
+extend-exclude = ["python/gen"]
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    # Conflicts with the Ruff formatter.
+    "COM812",
+    "ISC001",
+    # Pick one docstring convention (Google-style / D211 + D212).
+    "D203", # incorrect-blank-line-before-class (conflicts with D211)
+    "D213", # multi-line-summary-second-line (conflicts with D212)
+    # No project-wide copyright headers.
+    "CPY001",
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["python"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+# Package marker for the python/ tree (hand-written client lives alongside gen/).
+"python/__init__.py" = ["D104"]
+
+[tool.ruff.format]
+docstring-code-format = true

@@ -1,11 +1,11 @@
 {
-  "venvPath": "python",
+  "venvPath": ".",
   "venv": ".venv",
   "pythonVersion": "3.14",
   "extraPaths": ["."],
   "include": ["python"],
   "exclude": [
-    "python/.venv",
+    ".venv",
     "python/gen",
     "**/__pycache__"
   ],

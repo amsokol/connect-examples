@@ -1,5 +1,10 @@
 """
 Python toolchain and pip dependencies for Bazel (rules_python).
+
+Source of truth for pins is pyproject.toml + uv.lock. requirements.txt is an
+export for pip.parse (rules_python does not consume uv.lock directly yet):
+
+    uv export --frozen --no-dev --no-hashes --no-emit-project -o requirements.txt
 """
 
 python = use_extension("@rules_python//python/extensions:python.bzl", "python")
