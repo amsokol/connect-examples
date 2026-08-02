@@ -61,7 +61,7 @@ jobs:
           cache: true
 
       - name: Install uv
-        # Exact pin via pipx (same approach as ai-devsecops): avoid action drift.
+        # Exact pin via pipx: avoid action drift.
         run: pipx install uv==0.12.1
 
       - name: Set up Rust

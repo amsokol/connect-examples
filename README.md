@@ -28,10 +28,7 @@ buf.gen.go.yaml                # Go codegen
 buf.gen.python.yaml            # Python codegen (use with --include-imports)
 buf.gen.rust.yaml              # Rust codegen (BSR buffa + connectrpc/rust)
 .golangci.yaml                 # golangci-lint v2
-.github/workflows/ci.yml       # CI: buf, build, lint, vulns, test + agent-maintain on main
-.github/workflows/agent-gate.yml     # DevSecOps PR gate (agent-gate)
-.github/workflows/agent-maintain.yml # DevSecOps maintain (manual + via CI on main)
-.cursor/agent/                 # Agent policy overlay + skills submodule
+.github/workflows/ci.yml       # CI: buf, build, lint, vulns, test
 ```
 
 ## Prerequisites
@@ -257,17 +254,11 @@ cargo clippy -- -D warnings
 cargo test -p echo-server
 ```
 
-## DevSecOps agent
-
-**Agent gate** (`.github/workflows/agent-gate.yml`): on PR open/sync/reopen **and** on **human** PR conversation / review-thread comments, runs `agent-gate` as `github-actions[bot]` (latest run cancels prior; bot comments do not re-trigger). **Agent maintain** on push to `main` runs `agent-maintain`. Runner pin: `uses: …@v0.3.15` → [ai-devsecops-cursor](https://github.com/amsokol/ai-devsecops-cursor). Policy overlay: `.cursor/agent/` + skills submodule `.cursor/agent/library` ([ai-devsecops-skills](https://github.com/amsokol/ai-devsecops-skills) @ `v0.1.16`).
-
-**Merge to `main`:** ruleset `agent-gate-merge` requires green status check **Agent gate (PR review)** and resolved review threads (required approving reviews: **0** — the bot cannot APPROVE its own maintain PRs).
-
 ## CI
 
-GitHub Actions (`.github/workflows/ci.yml`) runs Bazel and Native jobs in parallel on pushes to `main` and on pull requests. On push to `main` only, an **Agent maintain (main)** job also runs `agent-maintain`.
+GitHub Actions (`.github/workflows/ci.yml`) runs Bazel and Native jobs in parallel on pushes to `main` and on pull requests.
 
-**Bazel** — runs in `eclipse-temurin:25-jdk` with Bazelisk installed as `bazel` (version from `.bazelversion`):
+**Bazel** — runs in `eclipse-temurin:25.0.3_9-jdk` with Bazelisk installed as `bazel` (version from `.bazelversion`):
 
 1. Build — `bazel build //...` (Go, Python, Rust Echo binaries from checked-in stubs; codegen targets are `manual`)
 2. Test — `bazel test //...` (includes `//api/v1:lint`; stub drift is checked in the Native job via `go tool buf generate`, or optionally `bazel test //api/v1:generate_tests`)
@@ -291,8 +282,3 @@ GitHub Actions (`.github/workflows/ci.yml`) runs Bazel and Native jobs in parall
 - Python uses [connectrpc](https://pypi.org/project/connectrpc/) with [protobuf-py](https://protobufpy.com) (Buf `bufbuild/py` + `connectrpc/py` plugins).
 - Python pins live in `pyproject.toml`; `uv.lock` is the resolver lock. Refresh with `uv lock`, then re-export `requirements.txt` for Bazel (`uv export …` above).
 - Rust uses a Cargo workspace (`Cargo.toml` at the repo root); crate pins live in `[workspace.dependencies]`. Checked-in stubs live in `rust/api/gen/` (via `buf.gen.rust.yaml`: BSR `buffa` + `connectrpc/rust` with `file_per_package`) and are exposed by the `api` crate.
-
-## Dependency updates
-
-Dependency policy and bumps are owned by the DevSecOps agent (`.cursor/agent/` +
-skills submodule). Quarantine: **2 days** (see `.cursor/agent/quarantine.md`).
