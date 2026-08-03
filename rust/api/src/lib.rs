@@ -5,7 +5,7 @@
 //!
 //! Call sites use `api::v1::{...}` (crate name + proto version). Internal
 //! `buffa` / `connect` trees keep the proto package path for
-//! `buffa_module=crate::buffa`.
+//! `buffa_module=crate::buffa`. Protovalidate uses `proto_module=crate::buffa`.
 
 #![allow(clippy::all)]
 #![allow(dead_code, unused_imports, unused_qualifications)]
@@ -27,6 +27,13 @@ pub mod connect {
         }
     }
 }
+
+/// Protovalidate `impl Validate` blocks (`protoc-gen-protovalidate-buffa`).
+///
+/// `#[path]` so nested `include!`s in the packaging `mod.rs` resolve relative
+/// to `gen/protovalidate/`.
+#[path = "../gen/protovalidate/mod.rs"]
+pub mod protovalidate;
 
 /// Unified facade: messages + service stubs as `api::v1`.
 pub mod v1 {

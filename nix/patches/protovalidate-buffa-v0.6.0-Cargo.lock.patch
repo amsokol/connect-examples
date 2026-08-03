@@ -1,0 +1,31 @@
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -155,6 +155,19 @@
+ ]
+ 
+ [[package]]
++name = "buffa-types"
++version = "0.8.1"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "22cb54bcbf6946c58e550eeaf6209047146363dbc7cbdc87e49e67089ed2ff5f"
++dependencies = [
++ "buffa",
++ "bytes",
++ "serde",
++ "serde_json",
++ "thiserror 2.0.19",
++]
++
++[[package]]
+ name = "bumpalo"
+ version = "3.20.3"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+@@ -760,6 +773,8 @@
+ dependencies = [
+  "buffa",
+  "buffa-build",
++ "buffa-descriptor",
++ "buffa-types",
+ ]
+ 
+ [[package]]

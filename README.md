@@ -167,6 +167,7 @@ All overlaid tools and plugins are pinned in [`tools.version.toml`](tools.versio
    | `protoc-gen-connectrpc` (+ `protobuf-py-for-connectrpc`) | `nix build .#protoc-gen-connectrpc`          |
    | `protoc-gen-buffa`                                       | `nix build .#protoc-gen-buffa`               |
    | `protoc-gen-connect-rust`                                | `nix build .#protoc-gen-connect-rust`        |
+   | `protoc-gen-protovalidate-buffa`                         | `nix build .#protoc-gen-protovalidate-buffa` |
    | `protovalidate`                                          | `nix build .#checks.x86_64-linux.lint-proto` |
 
 4. Copy each `got: sha256-…` from the error into `tools.version.toml`.
@@ -179,7 +180,7 @@ All overlaid tools and plugins are pinned in [`tools.version.toml`](tools.versio
 - **Rust crates** (`cargo-audit`, `protoc-gen-*`, `ruff`): `hash` = crates.io / GitHub source; `cargoHash` = vendored Cargo deps.
 - **Python** (`pip-audit`, `protoc-gen-*`, `protobuf-py*`): set `url` to the PyPI wheel URL for that version, `hash` = that wheel. Look up the exact wheel on [PyPI](https://pypi.org/) (Files tab).
 - **Linters (npm)** (`markdownlint-cli2`): GitHub `hash` plus `npmDepsHash`.
-- **Rust plugins** (`protoc-gen-buffa`, `protoc-gen-connect-rust`): `hash` = crates.io crate; `cargoHash` = vendored Cargo deps. `protoc-gen-connect-rust` uses crate name `connectrpc-codegen` (`crate` field).
+- **Rust plugins** (`protoc-gen-buffa`, `protoc-gen-connect-rust`, `protoc-gen-protovalidate-buffa`): `hash` = source archive; `cargoHash` = vendored Cargo deps. `protoc-gen-connect-rust` uses crate name `connectrpc-codegen` (`crate` field). `protoc-gen-protovalidate-buffa` is built from GitHub (`owner` / `repo` / `rev`) plus `nix/patches/` (crates.io rebuild needs `buffa-types` / `buffa-descriptor`).
 
 **Rust toolchain** for apps is **not** in `tools.version.toml` — it comes from `[workspace.package].rust-version` in root `Cargo.toml` via rust-overlay. Git crate deps (e.g. `mimalloc`) are likewise only in `Cargo.lock`; crane fetches them via `builtins.fetchGit` from that lockfile.
 
@@ -202,6 +203,6 @@ GitHub Actions (`.github/workflows/ci.yml`) — one **Nix** job on `main` pushes
 
 ## Notes
 
-- Request validation: `message` is required and non-empty (`buf.validate` in the proto; `connectrpc.com/validate` on the Go server; matching check in the Rust server).
+- Request validation: `message` is required and non-empty (`buf.validate` in the proto; `connectrpc.com/validate` on the Go server; [`protovalidate-buffa`](https://github.com/mathematic-inc/protovalidate-buffa) codegen + `#[connect_impl]` on the Rust server).
 - Go Protobuf uses the **opaque** API (`features.(pb.go).api_level = API_OPAQUE`).
 - Connect Go codegen uses `package_suffix=` so handlers/clients live next to the `.pb.go` types.

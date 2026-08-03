@@ -17,6 +17,7 @@ connectrpc = { workspace = true, features = ["server", "gzip", "json"] }
 connectrpc-health = { workspace = true }
 http = { workspace = true }
 mimalloc = { workspace = true }
+protovalidate-buffa = { workspace = true }
 serde = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }

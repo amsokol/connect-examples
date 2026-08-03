@@ -12,4 +12,5 @@ path = "src/lib.rs"
 [dependencies]
 buffa = { workspace = true }
 connectrpc = { workspace = true, features = ["client", "server", "json"] }
+protovalidate-buffa = { workspace = true }
 serde = { workspace = true }

@@ -13,3 +13,9 @@ plugins:
     opt:
       - file_per_package
       - buffa_module=crate::buffa
+  # Static Validate impls from (buf.validate.*) — see mathematic-inc/protovalidate-buffa.
+  - local: protoc-gen-protovalidate-buffa
+    out: rust/api/gen/protovalidate
+    strategy: all
+    opt:
+      - proto_module=crate::buffa

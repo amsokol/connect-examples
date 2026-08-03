@@ -9,7 +9,7 @@
       ...
     }:
     let
-      inherit (pkgs) fetchCrate fetchurl;
+      inherit (pkgs) fetchCrate fetchurl fetchFromGitHub;
       inherit (pkgs) rustPlatform;
       py = python.pkgs;
 
@@ -83,6 +83,29 @@
         doCheck = false;
       };
 
+      protovalidateBuffaPin = versions."protoc-gen-protovalidate-buffa";
+      protoc-gen-protovalidate-buffa = rustPlatform.buildRustPackage {
+        pname = "protoc-gen-protovalidate-buffa";
+        version = protovalidateBuffaPin.version;
+        src = fetchFromGitHub {
+          owner = protovalidateBuffaPin.owner;
+          repo = protovalidateBuffaPin.repo;
+          rev = protovalidateBuffaPin.rev;
+          hash = protovalidateBuffaPin.hash;
+        };
+        cargoHash = protovalidateBuffaPin.cargoHash;
+        cargoBuildFlags = [ "-p" "protoc-gen-protovalidate-buffa" ];
+        # Add buffa-types (codegen emits ::buffa_types:: for google.protobuf.* WKTs).
+        # cargoPatches also feed fetchCargoVendor so the lock/vendor include buffa-types.
+        cargoPatches = [
+          ./patches/protovalidate-buffa-protos-buffa-types.patch
+          ./patches/protovalidate-buffa-v0.6.0-Cargo.lock.patch
+        ];
+        # protovalidate-buffa-protos runs buffa-build → protoc at compile time.
+        nativeBuildInputs = [ pkgs.protobuf ];
+        doCheck = false;
+      };
+
       bufPlugins = pkgs.symlinkJoin {
         name = "buf-plugins";
         paths = [
@@ -92,6 +115,7 @@
           protoc-gen-connectrpc
           protoc-gen-buffa
           protoc-gen-connect-rust
+          protoc-gen-protovalidate-buffa
         ];
       };
     in
@@ -109,6 +133,7 @@
           protoc-gen-connectrpc
           protoc-gen-buffa
           protoc-gen-connect-rust
+          protoc-gen-protovalidate-buffa
           ;
       };
     };

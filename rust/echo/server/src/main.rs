@@ -10,8 +10,7 @@ use std::time::Duration;
 
 use api::v1::{ECHO_SERVICE_SERVICE_NAME, EchoRequest, EchoResponse, EchoService, EchoServiceExt};
 use connectrpc::{
-    ConnectError, ConnectRpcService, RequestContext, Response, Router, Server, ServiceRequest,
-    ServiceResult,
+    ConnectRpcService, RequestContext, Response, Router, Server, ServiceRequest, ServiceResult,
 };
 use connectrpc_health::install_static;
 use log::LogInterceptor;
@@ -23,6 +22,7 @@ static GLOBAL: MiMalloc = MiMalloc;
 /// Echo service implementation.
 struct EchoServer;
 
+#[protovalidate_buffa::connect_impl]
 impl EchoService for EchoServer {
     #[allow(refining_impl_trait_internal)]
     async fn echo(
@@ -30,13 +30,8 @@ impl EchoService for EchoServer {
         _ctx: RequestContext,
         request: ServiceRequest<'_, EchoRequest>,
     ) -> ServiceResult<EchoResponse> {
+        // `#[connect_impl]` validates `(buf.validate.*)` on the request first.
         let message = request.message.unwrap_or("");
-        if message.is_empty() {
-            return Err(ConnectError::invalid_argument(
-                "message is required and must be non-empty",
-            ));
-        }
-
         Response::ok(EchoResponse::default().with_message(format!("Hello, {message}!")))
     }
 }

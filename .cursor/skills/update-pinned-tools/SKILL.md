@@ -5,7 +5,8 @@ description: >-
   vendorHash, cargoHash, npmDepsHash). Use when updating buf, golangci-lint,
   govulncheck, ruff, pip-audit, cargo-audit, markdownlint-cli2, grpc-health-probe,
   protoc-gen-*, protovalidate, go vendorHash, or when the user asks to refresh
-  pinned tools / versions.toml / tools.version.toml hashes.
+  pinned tools / versions.toml / tools.version.toml hashes. For
+  protoc-gen-protovalidate-buffa, also refresh nix/patches/ when bumping.
 ---
 
 # Update pinned tools
@@ -14,7 +15,7 @@ Pins live in `tools.version.toml` at the repo root. Overlay wiring is in `nix/to
 
 ## Workflow
 
-1. Edit the entry in `tools.version.toml`: new `version` (and `url` / `crate` if present).
+1. Edit the entry in `tools.version.toml`: new `version` (and `url` / `crate` / `owner` / `repo` / `rev` if present).
 2. Set every content hash for that entry to the fake placeholder:
 
    ```toml
@@ -43,11 +44,22 @@ Pins live in `tools.version.toml` at the repo root. Overlay wiring is in `nix/to
    | `protoc-gen-connectrpc` (+ `protobuf-py-for-connectrpc`) | `nix build .#protoc-gen-connectrpc --no-link` |
    | `protoc-gen-buffa` | `nix build .#protoc-gen-buffa --no-link` |
    | `protoc-gen-connect-rust` | `nix build .#protoc-gen-connect-rust --no-link` |
+   | `protoc-gen-protovalidate-buffa` | `nix build .#protoc-gen-protovalidate-buffa --no-link` |
    | `protovalidate` | `nix build .#checks.x86_64-linux.lint-proto --no-link` |
 
 4. Paste each `got:` hash into `tools.version.toml`. Rebuild until success.
 5. Hash order: Go → `hash` then `vendorHash`; Rust/`ruff`/`cargo-audit` → `hash` then `cargoHash`; npm → `hash` then `npmDepsHash`.
 6. After **codegen plugin** bumps: `nix run .#generate` and commit stub diffs.
+
+### `protoc-gen-protovalidate-buffa` (git + patches)
+
+Built from GitHub (`owner` / `repo` / `rev`), not crates.io — the published plugin rebuilds `protovalidate-buffa-protos` without `buffa-types` / `buffa-descriptor`, which buffa 0.8 codegen requires for WKTs.
+
+When bumping:
+
+1. Update `version` / `rev` / `hash` in `tools.version.toml`.
+2. Refresh `nix/patches/protovalidate-buffa-protos-buffa-types.patch` and `nix/patches/protovalidate-buffa-v0.6.0-Cargo.lock.patch` so `protovalidate-buffa-protos` still depends on `buffa-types` + `buffa-descriptor` and re-exports `buffa_types::google`.
+3. Reset `cargoHash` to the placeholder, then `nix build .#protoc-gen-protovalidate-buffa --no-link`.
 
 ## Keep in sync
 
@@ -72,3 +84,4 @@ Pins live in `tools.version.toml` at the repo root. Overlay wiring is in `nix/to
 - **Python wheels**: set `url` to the PyPI wheel; `hash` = that wheel.
 - **npm** (`markdownlint-cli2`): GitHub `hash` + `npmDepsHash`.
 - **`protoc-gen-connect-rust`**: crate name is `connectrpc-codegen` (`crate` field).
+- **`protoc-gen-protovalidate-buffa`**: GitHub pin + `nix/patches/` (see section above).

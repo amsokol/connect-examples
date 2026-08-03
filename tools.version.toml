@@ -116,3 +116,13 @@ version = "0.8.0"
 crate = "connectrpc-codegen"
 hash = "sha256-P/PlTRni6gF7oXJD9R9jHaErA5B2SvG8EhldOEGEWME="
 cargoHash = "sha256-MWuj3S83guxnVnVRhPQfEA4XAjNaHZ5u1lktRfqkHsw="
+
+[protoc-gen-protovalidate-buffa]
+version = "0.6.0"
+# Built from the monorepo (crates.io binary crate rebuilds protovalidate-buffa-protos
+# without buffa-types; buffa-codegen emits ::buffa_types:: for WKTs).
+owner = "mathematic-inc"
+repo = "protovalidate-buffa"
+rev = "v0.6.0"
+hash = "sha256-17SQx6kAoxDIzSJ5uTPABN1IN/3E8THGTQ76qNbyJSw="
+cargoHash = "sha256-7SuNTJlFe9cEqVUmwfZPVeJEymTpgds669Ri81iEle0="
