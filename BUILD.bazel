@@ -1,9 +1,0 @@
-exports_files([
-    "buf.yaml",
-    "buf.lock",
-    "buf.gen.go.yaml",
-    "buf.gen.python.yaml",
-    "buf.gen.rust.yaml",
-    "go.mod",
-    "go.sum",
-])

@@ -9,135 +9,37 @@ permissions:
   contents: read
 
 jobs:
-  bazel:
-    name: Bazel (build, test)
-    runs-on: ubuntu-latest
-    container:
-      image: eclipse-temurin:25.0.3_9-jdk
-    steps:
-      - name: Install Bazelisk
-        run: |
-          set -euo pipefail
-          apt-get update
-          apt-get install -y --no-install-recommends \
-            build-essential \
-            ca-certificates \
-            curl \
-            git \
-            unzip \
-            zip
-          curl -fsSL -o /usr/local/bin/bazel \
-            "https://github.com/bazelbuild/bazelisk/releases/download/${BAZELISK_VERSION}/bazelisk-linux-amd64"
-          chmod +x /usr/local/bin/bazel
-          bazel version
-        env:
-          BAZELISK_VERSION: "v1.29.0"
-
-      - name: Check out repository
-        uses: actions/checkout@v7.0.1
-
-      # Do not `bazel run //api/v1:generate` here — that rewrites stubs and hides
-      # drift. Codegen targets are tagged manual (BSR remotes); Native job checks
-      # drift via `go tool buf generate`. Optionally: bazel test //api/v1:generate_tests
-
-      - name: Build
-        run: |
-          bazel build //...
-
-      - name: Test
-        run: bazel test //...
-
-  native:
-    name: Native (Go, Python, Rust)
+  ci:
+    name: Nix
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
         uses: actions/checkout@v7.0.1
 
-      - name: Set up Go
-        uses: actions/setup-go@v7.0.0
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v20
+
+      - name: Magic Nix Cache
+        uses: DeterminateSystems/magic-nix-cache-action@v14
         with:
-          go-version-file: go.mod
-          cache: true
+          # Store built paths in GitHub Actions cache (skip FlakeHub).
+          use-flakehub: false
+          use-gha-cache: true
 
-      - name: Install uv
-        # Exact pin via pipx: avoid action drift.
-        run: pipx install uv==0.12.1
-
-      - name: Set up Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          components: clippy
-
-      - name: Cache Cargo
-        uses: Swatinem/rust-cache@v2.9.1
-
-      - name: Download modules and install Go tools
-        run: |
-          set -euo pipefail
-          go mod download
-          go install tool
-
-      - name: Lint Protobuf
-        run: go tool buf lint --error-format=github-actions
+      - name: Lint
+        run: nix run .#lint-all
 
       - name: Check generated code is up to date
-        env:
-          # Remote plugins need auth (~10/hr anonymous vs ~960/hr with token).
-          # Repo secret: BUF_TOKEN from https://buf.build/settings/user
-          BUF_TOKEN: ${{ secrets.BUF_TOKEN }}
-        run: |
-          set -euo pipefail
-          if [[ -z "${BUF_TOKEN}" ]]; then
-            echo "::error::BUF_TOKEN secret is required for BSR remote codegen. Create a token at https://buf.build/settings/user and add it as a repository secret."
-            exit 1
-          fi
-          go tool buf generate --template buf.gen.go.yaml
-          go tool buf generate --template buf.gen.python.yaml --include-imports
-          go tool buf generate --template buf.gen.rust.yaml
-          # Match bazel buf_generate: py plugins omit package markers.
-          find python/gen -type d -print0 | while IFS= read -r -d "" d; do
-            if [[ ! -f "$d/__init__.py" ]]; then
-              printf '%s\n' 'from __future__ import annotations' > "$d/__init__.py"
-            fi
-          done
-          if ! git diff --exit-code -- go/api; then
-            echo "::error::Generated Go code is out of date. Run 'go tool buf generate --template buf.gen.go.yaml' (or 'bazel run //api/v1:generate') and commit the result."
-            exit 1
-          fi
-          if ! git diff --exit-code -- python/gen; then
-            echo "::error::Generated Python code is out of date. Run 'go tool buf generate --template buf.gen.python.yaml --include-imports' (or 'bazel run //api/v1:generate') and commit the result."
-            exit 1
-          fi
-          if ! git diff --exit-code -- rust/api/gen; then
-            echo "::error::Generated Rust code is out of date. Run 'go tool buf generate --template buf.gen.rust.yaml' (or 'bazel run //api/v1:generate') and commit the result."
-            exit 1
-          fi
+        run: nix run .#generate-check
 
-      - name: Build
-        run: go build ./...
+      - name: Vulnerability scan
+        run: nix run .#vuln-all
 
-      - name: Build and lint Rust
-        run: |
-          set -euo pipefail
-          cargo clippy --locked -- -D warnings
-          cargo test --locked -p echo-server
+      - name: Build host artifacts
+        run: nix build .#default --no-link --print-build-logs
 
-      - name: Lint Go
-        run: go tool golangci-lint run --issues-exit-code=1 ./...
-
-      - name: Lint Python
-        run: |
-          set -euo pipefail
-          uv sync --frozen --group dev
-          uv run ruff check python
-          uv run ruff format --check python/echo
-
-      - name: Vulnerability check
-        run: |
-          set -euo pipefail
-          go tool govulncheck ./...
-          uv run pip-audit
+      - name: Evaluate full artifact set
+        run: nix build .#all --dry-run
 
       - name: Test
-        run: go test ./...
+        run: nix run .#test

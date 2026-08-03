@@ -1,284 +1,207 @@
 # connect-examples
 
-Examples of [Connect](https://connectrpc.com/) RPC services in Go, Python, and Rust.
+Examples of [Connect](https://connectrpc.com/) RPC in Go, Python, and Rust — hermetic [Nix](https://nixos.org/) flake for lint, codegen, builds, and CI.
 
-The first example is a small **Echo** service: Protobuf edition 2023, Protovalidate, opaque Go APIs, and clients/servers that speak the Connect protocol over HTTP/1.1 and HTTP/2 cleartext (h2c).
-
-## Layout
-
-```text
-api/v1/echo.proto              # service definition
-go/api/v1/                     # generated Go Protobuf + Connect code
-go/echo/cmd/server/            # Echo server (+ unit test)
-go/echo/cmd/client/            # Go Echo client (h2c + retry interceptor)
-python/gen/                    # generated Python Protobuf + Connect + Protovalidate
-python/echo/client/            # Python Echo client (retry interceptor)
-Cargo.toml                     # Rust workspace root
-rust/api/                      # generated Rust buffa + Connect stubs (library crate)
-rust/echo/client/              # Rust Echo client ([connect-rust](https://github.com/connectrpc/connect-rust))
-rust/echo/server/              # Rust Echo server (HTTP/1.1 + h2c + request logging)
-pyproject.toml                 # Python project + deps (uv) and Ruff config
-uv.lock                        # locked Python deps (uv)
-requirements.txt               # exported runtime lock for Bazel rules_python
-.python-version                # local/CI Python interpreter for uv
-pyrightconfig.json             # basedpyright / Pyright (venv + import paths)
-.vscode/settings.json          # Cursor/VS Code: Python venv, Ruff, basedpyright
-buf.yaml                       # Buf lint config
-buf.gen.go.yaml                # Go codegen
-buf.gen.python.yaml            # Python codegen (use with --include-imports)
-buf.gen.rust.yaml              # Rust codegen (BSR buffa + connectrpc/rust)
-.golangci.yaml                 # golangci-lint v2
-.github/workflows/ci.yml       # CI: buf, build, lint, vulns, test
-```
+**Echo** is the first service: Protobuf edition 2023 + Protovalidate; Go and Rust ship server + client; Python ships a client. All speak Connect over HTTP/1.1 and HTTP/2 cleartext (h2c).
 
 ## Prerequisites
 
-- Go 1.26+
-- Python 3.10+ ([uv](https://docs.astral.sh/uv/) for the local/native workflow)
-- Rust 1.88+ (for the Rust client; [connect-rust](https://github.com/connectrpc/connect-rust) MSRV)
-
-Go tools used by this repo are declared in `go.mod` and run via `go tool` (install binaries with `go install tool`):
-
-- `buf` — Protobuf lint / generate / `buf build`
-- `golangci-lint` — Go linting
-- `govulncheck` — dependency vulnerability scanning
-- `grpc-health-probe` — local gRPC health checks against `grpc.health.v1`
-
-Go / Python / Rust codegen use BSR remote plugins (`buf.gen.*.yaml`); no local `protoc-gen-*` install.
-
-**BSR auth (required for codegen):** unauthenticated remote generate is capped at ~10 requests/hour. Log in once (or set a token) before `buf generate` / `bazel run //api/v1:generate`:
-
-```bash
-go tool buf registry login
-# or create a token at https://buf.build/settings/user and:
-export BUF_TOKEN=...
-```
-
-Bazel forwards `BUF_TOKEN` into actions via `.bazelrc` (`--action_env=BUF_TOKEN`).
+[Nix](https://nixos.org/) with flakes enabled (`experimental-features = nix-command flakes`).
 
 ## Generate code
 
 ```bash
-bazel test //api/v1:lint
-bazel run //api/v1:generate
+nix run .#generate
 ```
 
-`//api/v1:lint` runs hermetic `buf lint` (pins from `buf.lock`). Generation updates checked-in stubs for all languages:
+Generation updates checked-in stubs for all languages:
 
 - Go → `go/api/v1/` (`echo.pb.go` and `echo.connect.go` in the same `apiv1` package)
 - Python → `python/gen/` (`api/` + `buf/`)
 - Rust → `rust/api/gen/` (`buffa/` + `connect/` package files, wired by the `api` crate)
 
-Details: [Bazel](#bazel).
-
-Or without Bazel (requires Go tools from [Prerequisites](#prerequisites); Rust uses BSR remotes):
+### Check stubs are up to date
 
 ```bash
-go tool buf generate --template buf.gen.go.yaml
-go tool buf generate --template buf.gen.python.yaml --include-imports
-go tool buf generate --template buf.gen.rust.yaml
+nix run .#generate-check
 ```
 
-## Bazel
+Fails if checked-in stubs differ from a hermetic regen (same check as CI).
 
-Requires [Bazel](https://bazel.build/) / [Bazelisk](https://github.com/bazelbuild/bazelisk) (version pinned in `.bazelversion`). Go SDK and module deps come from `go.mod` via `rules_go` (`go.MODULE.bazel`). Python toolchain and pip deps come from exported `requirements.txt` via `rules_python` (`python.MODULE.bazel`); pins live in `pyproject.toml` / `uv.lock`. Rust toolchain and crates come from `Cargo.toml` / `Cargo.lock` via `rules_rust` (`rust.MODULE.bazel`). Buf CLI is the prebuilt binary from `rules_buf`; Go / Python / Rust codegen use BSR remotes (`buf.gen.*.yaml`). BSR pins stay in `buf.lock` only.
+## Lint
 
-### 1. Lint
+Hermetic (Nix sandbox):
 
 ```bash
-bazel test //api/v1:lint
+nix run .#lint-proto    # Protobuf (buf)
+nix run .#lint-go       # golangci-lint
+nix run .#lint-python   # ruff check + format
+nix run .#lint-rust     # clippy
+nix run .#lint-md       # markdownlint-cli2
+nix run .#lint-all      # all of the above
 ```
 
-Hermetic `buf lint` over `//api/v1:module` (pins from `buf.lock`).
-
-### 2. Generation
-
-Hermetic `buf generate` into `bazel-out`, then copy into the source tree:
+## Vuln
 
 ```bash
-bazel run //api/v1:generate
+nix run .#vuln-go       # govulncheck (needs network for vuln.go.dev)
+nix run .#vuln-python   # pip-audit on uv.lock runtime deps (needs network)
+nix run .#vuln-rust     # cargo audit (hermetic; rustsec advisory-db flake input)
+nix run .#vuln-all      # all of the above
 ```
 
-Builds `buf_generate` deps (`:go` / `:python` / `:rust`) from shared `//api/v1:module`, then one `write_source_files` updates the checked-in stubs. Codegen uses BSR remotes. No `buf dep update`; pins stay in `buf.lock` / `go.sum` / `Cargo.lock`.
+Refresh the Rust advisory DB with `nix flake update advisory-db` when you want newer RustSec data.
 
-### 3. Build
+## Build
+
+Hermetic host binaries:
 
 ```bash
-bazel build //...
+nix build .#rust-echo-server     # Rust
+nix build .#rust-echo-client
+nix build .#go-echo-server       # Go
+nix build .#go-echo-client
+nix build .#python-echo-client   # Python (host-only)
 ```
 
-Apps use **checked-in** stubs (`//go/api:apiv1`, `//python:gen_py`, `//rust/api:api`). The `buf_generate` targets (`//api/v1:go` / `:python` / `:rust`) are tagged `manual` so `//...` does not call BSR; build them explicitly when needed, or run generation (step 2).
-
-### 4. Test
+Artifact trees under `./result/`:
 
 ```bash
-bazel test //api/v1:lint //go/... //rust/...
-# Optional hermetic stub drift check (hits BSR):
-# bazel test //api/v1:generate_tests
+nix build .#default              # host only → result/{rust,go,python}/echo/…/default/
+nix build .#all                  # + Go/Rust static linux variants
+nix run .#rebuild                # force rebuild host (.#default)
+nix run .#rebuild -- all         # force rebuild all variants
 ```
 
-`generate_tests` is tagged `manual` (same as `buf_generate`) so default `bazel test //...` does not call BSR. Drift is also checked in CI via `go tool buf generate`. Re-run generation (step 2) and commit if stubs are stale.
+Same packages under source-mirrored paths, e.g. `nix build '.#"rust/echo/server/default"'`.
+
+Static linux leaves (Rust: musl; Go: `CGO_ENABLED=0`): `.#rust-echo-server-x86_64-v1`, `-x86_64-v3`, `-arm64` (and the same for `rust-echo-client` / `go-echo-*`). Python has no cross/static variants.
+
+## Test
+
+Hermetic (Nix sandbox):
+
+```bash
+nix run .#test
+```
+
+Runs:
+
+- Go — `go test ./...`
+- Rust — `cargo test --locked --workspace`
+- Python — import smoke (`python.echo.client`)
 
 ## Run the Echo example
 
-### Server (Go)
-
-Terminal 1 — Go server (HTTP/1.1 + h2c on `:8080`):
+Servers listen on `:8080` (HTTP/1.1 + h2c). Run **one** server:
 
 ```bash
-go run ./go/echo/cmd/server
+# Terminal 1
+nix run .#go-echo-server
+# or
+nix run .#rust-echo-server
 ```
 
-The server logs each unary RPC with `log/slog` (procedure, Connect/gRPC protocol, HTTP version, peer address, method, Content-Type, User-Agent, duration, and error code if any). It also serves [`grpc.health.v1.Health`](https://github.com/connectrpc/grpchealth-go) (`Serving` for `api.v1.EchoService`) for Kubernetes gRPC probes and `grpc_health_probe`:
+Then a client (Connect over h2c):
 
 ```bash
-go tool grpc-health-probe \
+# Terminal 2
+nix run .#go-echo-client
+# or
+nix run .#rust-echo-client
+# or
+nix run .#python-echo-client
+```
+
+Expected output:
+
+```text
+Hello, Jane!
+```
+
+Clients retry `Unavailable` / `ResourceExhausted` (and matching transport errors) with the same 5-attempt exponential backoff. Both servers reject empty `message` with `InvalidArgument` and serve `grpc.health.v1.Health` for `api.v1.EchoService`.
+
+### Health probe
+
+With a server running:
+
+```bash
+nix run .#grpc-health-probe -- \
   -addr=localhost:8080 \
   -service=api.v1.EchoService
 ```
 
-### Server (Rust)
+## Updating pinned tools (`tools.version.toml`)
 
-Alternative to the Go server (same port — run only one):
+All overlaid tools and plugins are pinned in [`tools.version.toml`](tools.version.toml). Bump **version and hashes together**. Nix will refuse to build if a hash does not match the downloaded content.
 
-```bash
-cargo run -p echo-server
-# or: bazel run //rust/echo/server:server
-```
+**General workflow (any pin with a hash field):**
 
-Serves Connect over HTTP/1.1 and h2c on `127.0.0.1:8080`. Logs unary RPCs with `tracing` (procedure, protocol, peer, Content-Type, User-Agent, duration). Serves [`grpc.health.v1.Health`](https://crates.io/crates/connectrpc-health) (`Serving` for `api.v1.EchoService`) for Kubernetes gRPC probes — same check as the Go server:
+1. Edit `tools.version.toml`: set the new `version` (and `url` / `crate` / `key` if that field exists for the entry).
+2. Replace every content hash for that entry with a placeholder:
 
-```bash
-go tool grpc-health-probe \
-  -addr=localhost:8080 \
-  -service=api.v1.EchoService
-```
+   ```toml
+   hash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+   vendorHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="   # Go only
+   cargoHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="    # Rust crates / ruff
+   npmDepsHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="  # markdownlint-cli2
+   ```
 
-Rejects empty `message` with `InvalidArgument` (Go uses Protovalidate for the same rule).
+   (`lib.fakeHash` is the same all-`A` value.)
+3. Build the corresponding package so Nix prints the real hash(es):
 
-### Go client
+   | Pin                                                      | Build command                                |
+   | -------------------------------------------------------- | -------------------------------------------- |
+   | `buf`                                                    | `nix develop -c buf --version`               |
+   | `protoc-gen-go`                                          | `nix build .#protoc-gen-go`                  |
+   | `protoc-gen-connect-go`                                  | `nix build .#protoc-gen-connect-go`          |
+   | `go` (workspace `vendorHash`)                            | `nix build .#go-echo-server`                 |
+   | `grpc-health-probe`                                      | `nix build .#grpc-health-probe`              |
+   | `golangci-lint`                                          | `nix build .#golangci-lint`                  |
+   | `govulncheck`                                            | `nix build .#govulncheck`                    |
+   | `cargo-audit`                                            | `nix build .#cargo-audit`                    |
+   | `pip-audit`                                              | `nix build .#pip-audit`                      |
+   | `ruff`                                                   | `nix build .#ruff`                           |
+   | `markdownlint-cli2`                                      | `nix build .#markdownlint-cli2`              |
+   | `protoc-gen-py` (+ `protobuf-py`)                        | `nix build .#protoc-gen-py`                  |
+   | `protoc-gen-connectrpc` (+ `protobuf-py-for-connectrpc`) | `nix build .#protoc-gen-connectrpc`          |
+   | `protoc-gen-buffa`                                       | `nix build .#protoc-gen-buffa`               |
+   | `protoc-gen-connect-rust`                                | `nix build .#protoc-gen-connect-rust`        |
+   | `protovalidate`                                          | `nix build .#checks.x86_64-linux.lint-proto` |
 
-Terminal 2 — client (Connect protocol over h2c):
+4. Copy each `got: sha256-…` from the error into `tools.version.toml`.
+5. Rebuild until it succeeds. For Go packages you usually fix `hash` first, then `vendorHash` on the next build. For Rust crates / `ruff`: `hash` first, then `cargoHash`. For `markdownlint-cli2`: `hash` then `npmDepsHash`.
+6. After codegen plugin bumps, re-run `nix run .#generate` and commit stub diffs if any.
 
-```bash
-go run ./go/echo/cmd/client
-```
+**Field meanings:**
 
-Expected output:
+- **Go** (`buf`, `protoc-gen-go`, `protoc-gen-connect-go`, `grpc-health-probe`, `golangci-lint`, `govulncheck`): `hash` = GitHub source archive; `vendorHash` = Go module vendor tree.
+- **Rust crates** (`cargo-audit`, `protoc-gen-*`, `ruff`): `hash` = crates.io / GitHub source; `cargoHash` = vendored Cargo deps.
+- **Python** (`pip-audit`, `protoc-gen-*`, `protobuf-py*`): set `url` to the PyPI wheel URL for that version, `hash` = that wheel. Look up the exact wheel on [PyPI](https://pypi.org/) (Files tab).
+- **Linters (npm)** (`markdownlint-cli2`): GitHub `hash` plus `npmDepsHash`.
+- **Rust plugins** (`protoc-gen-buffa`, `protoc-gen-connect-rust`): `hash` = crates.io crate; `cargoHash` = vendored Cargo deps. `protoc-gen-connect-rust` uses crate name `connectrpc-codegen` (`crate` field).
 
-```text
-Hello, Jane!
-```
+**Rust toolchain** for apps is **not** in `tools.version.toml` — it comes from `[workspace.package].rust-version` in root `Cargo.toml` via rust-overlay. Git crate deps (e.g. `mimalloc`) are likewise only in `Cargo.lock`; crane fetches them via `builtins.fetchGit` from that lockfile.
 
-The client uses the **Connect** protocol (not gRPC). Switch to HTTP/1.1 by using the commented `http.DefaultClient` block in `go/echo/cmd/client/main.go`.
+**Go toolchain** for apps is also **not** version-pinned in `tools.version.toml` — it comes from the `go X.Y` line in root `go.mod`. The module vendor tree hash is `[go].vendorHash` in `tools.version.toml` (refresh when `go.sum` changes: set to `lib.fakeHash`, run `nix build .#go-echo-server`, paste the `got:` hash).
 
-### Shared HTTP/2 client
+**Python toolchain** for apps is likewise **not** in `tools.version.toml` — interpreter comes from `.python-version` (`3.14` → `pkgs.python314`); runtime deps come from `uv.lock` via uv2nix. Refresh by editing `pyproject.toml` / running `uv lock`, then `nix build .#python-echo-client`.
 
-The Go client builds one shared `http.Client` with `http2.Transport` (h2c). Reusing it across goroutines multiplexes RPCs on fewer TCP connections and avoids exhausting ephemeral outbound ports under load.
-
-### Automatic retries (Go)
-
-`go/echo/cmd/client/retry.go` installs a Connect unary interceptor that retries transient failures:
-
-- Retries: `Unavailable`, `ResourceExhausted`, dial/`OpError`, network timeouts
-- Does not retry: caller cancel/deadline, validation / most application errors
-- Up to **5** attempts with exponential backoff starting at **1s** (1s, 2s, 4s, 8s)
-
-**Manual check:** run the client with no server — it should wait several seconds across retries before failing. Or start the client first, then start the server within a few seconds; a later attempt can succeed once the server is up.
-
-### Python client
-
-Bazel (toolchain + pip from `python.MODULE.bazel` / exported `requirements.txt`):
-
-```bash
-bazel run //python/echo/client
-```
-
-Or with uv (creates `.venv` from `uv.lock`):
-
-```bash
-uv sync --group dev
-uv run python -m python.echo.client
-```
-
-Expected output:
-
-```text
-Hello, Jane!
-```
-
-`python/echo/client/retry.py` retries `Unavailable` / `ResourceExhausted` and common transport failures with the same 5-attempt exponential backoff as the Go client.
-
-The client uses Connect over HTTP/2 cleartext (h2c) via `pyqwest.SyncHTTPTransport(http_version=HTTPVersion.HTTP2)`, matching the Go and Rust clients. For HTTP/1.1, omit `http_version` or set `HTTPVersion.HTTP1` in `python/echo/client/__main__.py`.
-
-To refresh locked deps after editing `pyproject.toml`:
-
-```bash
-uv lock
-uv export --frozen --no-dev --no-hashes --no-emit-project -o requirements.txt
-uv sync --group dev
-```
-
-Keep `uv.lock` and the Bazel export (`requirements.txt`) in the same change-set — `rules_python` still consumes `requirements.txt`, not `uv.lock`.
-
-### Rust client
-
-From the repo root:
-
-```bash
-cargo run -p echo-client
-# or: bazel run //rust/echo/client:client
-```
-
-Expected output:
-
-```text
-Hello, Jane!
-```
-
-The client uses [connect-rust](https://github.com/connectrpc/connect-rust) with `HttpClient::plaintext_http2_only()` (h2c), matching the Go client. For HTTP/1.1, switch to `HttpClient::plaintext()` in `rust/echo/client/src/main.rs`.
-
-`rust/echo/client/src/retry.rs` retries `Unavailable` / `ResourceExhausted` (including dial/transport failures mapped to `Unavailable`) with the same 5-attempt exponential backoff.
-
-## Lint, vulns, and test
-
-```bash
-bazel test //api/v1:lint
-go tool golangci-lint run ./...
-go tool govulncheck ./...
-go test ./...
-uv run ruff check python
-uv run ruff format --check python/echo
-uv run pip-audit
-cargo clippy -- -D warnings
-cargo test -p echo-server
-```
+**Protovalidate protos** for hermetic buf are pinned in `tools.version.toml` (`[protovalidate]`) via `fetchFromGitHub` (`bufbuild/protovalidate` tag `v${version}`). Keep the tag aligned with `buf.yaml` deps (`buf.build/bufbuild/protovalidate:v…`). Refresh `hash` like other GitHub pins when bumping.
 
 ## CI
 
-GitHub Actions (`.github/workflows/ci.yml`) runs Bazel and Native jobs in parallel on pushes to `main` and on pull requests.
+GitHub Actions (`.github/workflows/ci.yml`) — one **Nix** job on `main` pushes and PRs, with [Magic Nix Cache](https://github.com/DeterminateSystems/magic-nix-cache-action) (GitHub Actions cache, no FlakeHub):
 
-**Bazel** — runs in `eclipse-temurin:25.0.3_9-jdk` with Bazelisk installed as `bazel` (version from `.bazelversion`):
-
-1. Build — `bazel build //...` (Go, Python, Rust Echo binaries from checked-in stubs; codegen targets are `manual`)
-2. Test — `bazel test //...` (includes `//api/v1:lint`; stub drift is checked in the Native job via `go tool buf generate`, or optionally `bazel test //api/v1:generate_tests`)
-
-**Native** — Go / Python / Rust toolchains without Bazel:
-
-1. `go tool buf lint`
-2. `go tool buf generate` for Go, Python, and Rust templates and fail if generated code is out of date
-3. `go build ./...`
-4. `cargo clippy` / `cargo test -p echo-server` (Rust)
-5. `go tool golangci-lint run ./...`
-6. `ruff check` / `ruff format --check` (Python via `uv`)
-7. `go tool govulncheck ./...` and `uv run pip-audit`
-8. `go test ./...`
+1. `nix run .#lint-all`
+2. `nix run .#generate-check`
+3. `nix run .#vuln-all`
+4. `nix build .#default`
+5. `nix build .#all --dry-run` (evaluate static/cross artifact graph)
+6. `nix run .#test`
 
 ## Notes
 
-- Request validation: `message` is required and non-empty (`buf.validate` in the proto; `connectrpc.com/validate` on the Go server; a matching check in the Rust server handler).
+- Request validation: `message` is required and non-empty (`buf.validate` in the proto; `connectrpc.com/validate` on the Go server; matching check in the Rust server).
 - Go Protobuf uses the **opaque** API (`features.(pb.go).api_level = API_OPAQUE`).
 - Connect Go codegen uses `package_suffix=` so handlers/clients live next to the `.pb.go` types.
-- Python uses [connectrpc](https://pypi.org/project/connectrpc/) with [protobuf-py](https://protobufpy.com) (Buf `bufbuild/py` + `connectrpc/py` plugins).
-- Python pins live in `pyproject.toml`; `uv.lock` is the resolver lock. Refresh with `uv lock`, then re-export `requirements.txt` for Bazel (`uv export …` above).
-- Rust uses a Cargo workspace (`Cargo.toml` at the repo root); crate pins live in `[workspace.dependencies]`. Checked-in stubs live in `rust/api/gen/` (via `buf.gen.rust.yaml`: BSR `buffa` + `connectrpc/rust` with `file_per_package`) and are exposed by the `api` crate.

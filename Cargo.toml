@@ -9,13 +9,13 @@ rust-version = "1.97.1"
 publish = false
 
 [workspace.dependencies]
+api = { path = "rust/api" }
 buffa = { version = "=0.8.1", default-features = false, features = [
     "std",
     "fast-utf8",
     "json",
 ] }
 bytes = "=1.12.1"
-api = { path = "rust/api" }
 connectrpc = { version = "=0.8.1", default-features = false }
 connectrpc-health = { version = "=0.8.0", default-features = false }
 http = "=1.5.0"

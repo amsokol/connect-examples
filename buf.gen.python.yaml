@@ -1,6 +1,6 @@
 version: v2
 plugins:
-  - remote: buf.build/bufbuild/py:v0.2.0
+  - local: protoc-gen-py
     out: python/gen
-  - remote: buf.build/connectrpc/py:v0.11.1
+  - local: protoc-gen-connectrpc
     out: python/gen
