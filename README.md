@@ -192,7 +192,7 @@ All overlaid tools and plugins are pinned in [`tools.version.toml`](tools.versio
 
 ## CI
 
-GitHub Actions (`.github/workflows/ci.yml`) — one **Nix** job on `main` pushes and PRs, with [Magic Nix Cache](https://github.com/DeterminateSystems/magic-nix-cache-action) (GitHub Actions cache, no FlakeHub):
+GitHub Actions (`.github/workflows/ci.yml`) — one **Nix** job on `main` pushes and PRs, with [cache-nix-action](https://github.com/nix-community/cache-nix-action) (official GitHub Actions cache for the Nix store):
 
 1. `nix run .#lint-all`
 2. `nix run .#generate-check`

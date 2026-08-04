@@ -17,14 +17,17 @@ jobs:
         uses: actions/checkout@v7.0.1
 
       - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@v20
+        uses: DeterminateSystems/nix-installer-action@v22
 
-      - name: Magic Nix Cache
-        uses: DeterminateSystems/magic-nix-cache-action@v14
+      # Official Actions Cache (one store archive) — avoids Magic Nix Cache GHA throttle/418.
+      - name: Cache Nix store
+        uses: nix-community/cache-nix-action@v7.0.2
         with:
-          # Store built paths in GitHub Actions cache (skip FlakeHub).
-          use-flakehub: false
-          use-gha-cache: true
+          primary-key: nix-${{ runner.os }}-${{ hashFiles('flake.lock', 'flake.nix', 'tools.version.toml', 'Cargo.lock', 'go.sum', 'uv.lock') }}
+          restore-prefixes-first-match: nix-${{ runner.os }}-
+          # Keep store under GHA cache size budget (~10G) before save.
+          gc-max-store-size-linux: 8G
+          # No purge: would need permissions.actions: write.
 
       - name: Lint
         run: nix run .#lint-all
