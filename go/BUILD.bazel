@@ -3,7 +3,8 @@ load("//bazel/vuln:govulncheck.bzl", "govulncheck_test")
 
 golangci_test(
     name = "lint",
-    size = "small",
+    # Match .golangci.yaml run.timeout (5m). size small is 60s and times out in CI.
+    size = "medium",
     flags = [
         "run",
         "./go/...",
