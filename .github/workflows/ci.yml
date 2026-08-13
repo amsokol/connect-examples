@@ -61,11 +61,11 @@ jobs:
           restore-keys: |
             bazel-debian13-
 
+      - name: Build
+        run: bazel build //... --keep_going
+
       - name: Check generated code is up to date
         run: bazel test //api/v1:generate_tests --test_output=all
 
       - name: Test
         run: bazel test //... --keep_going --test_output=all
-
-      - name: Build
-        run: bazel build //... --keep_going
