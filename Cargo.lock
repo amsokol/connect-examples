@@ -2541,8 +2541,8 @@ dependencies = [
 
 [[package]]
 name = "mimalloc"
-version = "3.4.4"
-source = "git+https://github.com/amsokol/mimalloc?tag=v3.4.4#49950a75295ef2c0014fca97a5c06386fceb4efe"
+version = "3.4.5"
+source = "git+https://github.com/amsokol/mimalloc?tag=v3.4.5#661737e22e1015603b48f42c73e83e2d501ecf06"
 dependencies = [
  "cc",
 ]
