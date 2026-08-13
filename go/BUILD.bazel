@@ -1,4 +1,5 @@
 load("//bazel/lint:golangci.bzl", "golangci_test")
+load("//bazel/vuln:govulncheck.bzl", "govulncheck_test")
 
 golangci_test(
     name = "lint",
@@ -13,5 +14,19 @@ golangci_test(
         "external",
         "no-cache",
         "no-sandbox",
+    ],
+)
+
+govulncheck_test(
+    name = "vuln",
+    size = "small",
+    flags = ["./go/..."],
+    # Package load and vuln.go.dev need modules + network.
+    local = True,
+    tags = [
+        "external",
+        "no-cache",
+        "no-sandbox",
+        "requires-network",
     ],
 )

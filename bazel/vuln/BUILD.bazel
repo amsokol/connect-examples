@@ -1,0 +1,7 @@
+package(default_visibility = ["//visibility:public"])
+
+# Go vuln scanner from go.mod (gazelle-generated binary in go_deps).
+alias(
+    name = "govulncheck",
+    actual = "@org_golang_x_vuln//cmd/govulncheck:govulncheck",
+)
