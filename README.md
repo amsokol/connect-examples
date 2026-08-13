@@ -1,20 +1,20 @@
 # connect-examples
 
-Examples of [Connect](https://connectrpc.com/) RPC in Go, Python, and Rust — hermetic [Nix](https://nixos.org/) flake for lint, codegen, builds, and CI.
+Examples of [Connect](https://connectrpc.com/) RPC in Go, Python, and Rust. Lint, codegen, builds, and CI are [Bazel](https://bazel.build/) (see [`.bazelversion`](.bazelversion)).
 
 **Echo** is the first service: Protobuf edition 2023 + Protovalidate; Go and Rust ship server + client; Python ships a client. All speak Connect over HTTP/1.1 and HTTP/2 cleartext (h2c).
 
 ## Prerequisites
 
-[Nix](https://nixos.org/) with flakes enabled (`experimental-features = nix-command flakes`).
+[Bazelisk](https://github.com/bazelbuild/bazelisk) (or Bazel **9.2.0**). Toolchains and plugins are pulled by the module; nothing else to install.
 
 ## Generate code
 
 ```bash
-nix run .#generate
+bazel run //api/v1:generate
 ```
 
-Generation updates checked-in stubs for all languages:
+Updates checked-in stubs:
 
 - Go → `go/api/v1/` (`echo.pb.go` and `echo.connect.go` in the same `apiv1` package)
 - Python → `python/gen/` (`api/` + `buf/`)
@@ -23,73 +23,70 @@ Generation updates checked-in stubs for all languages:
 ### Check stubs are up to date
 
 ```bash
-nix run .#generate-check
+bazel test //api/v1:generate_tests
 ```
 
-Fails if checked-in stubs differ from a hermetic regen (same check as CI).
+Fails if checked-in stubs differ from a hermetic regen (same check as CI). Does not write to the source tree.
 
 ## Lint
 
-Hermetic (Nix sandbox):
+`bazel test` never rewrites files. Format is `bazel run` only.
 
 ```bash
-nix run .#lint-proto    # Protobuf (buf)
-nix run .#lint-go       # golangci-lint
-nix run .#lint-python   # ruff check + format
-nix run .#lint-rust     # clippy
-nix run .#lint-md       # markdownlint-cli2
-nix run .#lint-all      # all of the above
+bazel test //api/v1:lint          # Protobuf (buf)
+bazel test //go:lint              # golangci-lint
+bazel test //python:lint          # ruff check + format --check
+bazel test //rust:lint            # clippy
+bazel test //bazel:lint           # Starlark (buildifier)
+bazel test //bazel/lint:markdown  # markdownlint-cli2
+```
+
+```bash
+bazel run //api/v1:format   # buf format
+bazel run //python:format   # ruff format
+bazel run //bazel:format    # buildifier -mode=fix
 ```
 
 ## Vuln
 
-```bash
-nix run .#vuln-go       # govulncheck (needs network for vuln.go.dev)
-nix run .#vuln-python   # pip-audit on uv.lock runtime deps (needs network)
-nix run .#vuln-rust     # cargo audit (hermetic; rustsec advisory-db flake input)
-nix run .#vuln-all      # all of the above
-```
+Needs network (advisory DBs).
 
-Refresh the Rust advisory DB with `nix flake update advisory-db` when you want newer RustSec data.
+```bash
+bazel test //go:vuln       # govulncheck on ./go/...
+bazel test //python:vuln   # pip-audit on locked runtime deps from uv.lock
+bazel test //rust:vuln     # cargo-audit on Cargo.lock
+```
 
 ## Build
 
-Hermetic host binaries:
+Host binaries (outputs under `.bazel/bin/`):
 
 ```bash
-nix build .#rust-echo-server     # Rust
-nix build .#rust-echo-client
-nix build .#go-echo-server       # Go
-nix build .#go-echo-client
-nix build .#python-echo-client   # Python (host-only)
+bazel build //rust/echo/server:server
+bazel build //rust/echo/client:client
+bazel build //go/echo/cmd/server:server
+bazel build //go/echo/cmd/client:client
+bazel build //python/echo/client:client   # host-only
 ```
 
-Artifact trees under `./result/`:
+Linux cross targets (`amd64_v3`, `arm64`):
 
 ```bash
-nix build .#default              # host only → result/{rust,go,python}/echo/…/default/
-nix build .#all                  # + Go/Rust static linux variants
-nix run .#rebuild                # force rebuild host (.#default)
-nix run .#rebuild -- all         # force rebuild all variants
+bazel build //go/echo/cmd/server:server_amd64_v3 //go/echo/cmd/server:server_arm64
+bazel build //go/echo/cmd/client:client_amd64_v3 //go/echo/cmd/client:client_arm64
+bazel build //rust/echo/server:server_amd64_v3 //rust/echo/server:server_arm64
+bazel build //rust/echo/client:client_amd64_v3 //rust/echo/client:client_arm64
 ```
 
-Same packages under source-mirrored paths, e.g. `nix build '.#"rust/echo/server/default"'`.
-
-Static linux leaves (Rust: musl; Go: `CGO_ENABLED=0`): `.#rust-echo-server-x86_64-v1`, `-x86_64-v3`, `-arm64` (and the same for `rust-echo-client` / `go-echo-*`). Python has no cross/static variants.
+`bazel build //...` builds host and cross together. Python has no cross variants.
 
 ## Test
 
-Hermetic (Nix sandbox):
-
 ```bash
-nix run .#test
+bazel test //...
 ```
 
-Runs:
-
-- Go — `go test ./...`
-- Rust — `cargo test --locked --workspace`
-- Python — import smoke (`python.echo.client`)
+Includes lint, generate-check, vuln scanners, and Go unit tests (`//go/echo/cmd/server:server_test`, `//go/echo/cmd/client:client_test`).
 
 ## Run the Echo example
 
@@ -97,20 +94,20 @@ Servers listen on `:8080` (HTTP/1.1 + h2c). Run **one** server:
 
 ```bash
 # Terminal 1
-nix run .#go-echo-server
+bazel run //go/echo/cmd/server:server
 # or
-nix run .#rust-echo-server
+bazel run //rust/echo/server:server
 ```
 
 Then a client (Connect over h2c):
 
 ```bash
 # Terminal 2
-nix run .#go-echo-client
+bazel run //go/echo/cmd/client:client
 # or
-nix run .#rust-echo-client
+bazel run //rust/echo/client:client
 # or
-nix run .#python-echo-client
+bazel run //python/echo/client:client
 ```
 
 Expected output:
@@ -121,85 +118,27 @@ Hello, Jane!
 
 Clients retry `Unavailable` / `ResourceExhausted` (and matching transport errors) with the same 5-attempt exponential backoff. Both servers reject empty `message` with `InvalidArgument` and serve `grpc.health.v1.Health` for `api.v1.EchoService`.
 
-### Health probe
+## Versions
 
-With a server running:
+Language lockfiles are the source of truth. After a bump, refresh the matching lock and `MODULE.bazel.lock` if Bazel modules changed.
 
-```bash
-nix run .#grpc-health-probe -- \
-  -addr=localhost:8080 \
-  -service=api.v1.EchoService
-```
+| Area | Versions | Lock |
+| --- | --- | --- |
+| Go apps and tools (`buildifier`, `golangci-lint`, `govulncheck`, `protoc-gen-go`, `protoc-gen-connect-go`) | root `go.mod` (`require` / `tool`) | `go.sum` |
+| Python apps and tools (`ruff`, `pip-audit`, Buf Python plugins) | root `pyproject.toml` | `uv.lock` |
+| Rust apps, plugins, `cargo-audit` | root `Cargo.toml` `[workspace.dependencies]` | `Cargo.lock` |
+| Markdownlint | `pnpm-workspace.yaml` catalog | `pnpm-lock.yaml` |
+| Bazel rules, Buf CLI, protovalidate protos, LLVM, Node | `MODULE.bazel` and `*.MODULE.bazel` | `MODULE.bazel.lock` |
 
-## Updating pinned tools (`tools.version.toml`)
-
-All overlaid tools and plugins are pinned in [`tools.version.toml`](tools.version.toml). Bump **version and hashes together**. Nix will refuse to build if a hash does not match the downloaded content.
-
-**General workflow (any pin with a hash field):**
-
-1. Edit `tools.version.toml`: set the new `version` (and `url` / `crate` / `key` if that field exists for the entry).
-2. Replace every content hash for that entry with a placeholder:
-
-   ```toml
-   hash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
-   vendorHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="   # Go only
-   cargoHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="    # Rust crates / ruff
-   npmDepsHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="  # markdownlint-cli2
-   ```
-
-   (`lib.fakeHash` is the same all-`A` value.)
-3. Build the corresponding package so Nix prints the real hash(es):
-
-   | Pin                                                      | Build command                                |
-   | -------------------------------------------------------- | -------------------------------------------- |
-   | `buf`                                                    | `nix develop -c buf --version`               |
-   | `protoc-gen-go`                                          | `nix build .#protoc-gen-go`                  |
-   | `protoc-gen-connect-go`                                  | `nix build .#protoc-gen-connect-go`          |
-   | `go` (workspace `vendorHash`)                            | `nix build .#go-echo-server`                 |
-   | `grpc-health-probe`                                      | `nix build .#grpc-health-probe`              |
-   | `golangci-lint`                                          | `nix build .#golangci-lint`                  |
-   | `govulncheck`                                            | `nix build .#govulncheck`                    |
-   | `cargo-audit`                                            | `nix build .#cargo-audit`                    |
-   | `pip-audit`                                              | `nix build .#pip-audit`                      |
-   | `ruff`                                                   | `nix build .#ruff`                           |
-   | `markdownlint-cli2`                                      | `nix build .#markdownlint-cli2`              |
-   | `protoc-gen-py` (+ `protobuf-py`)                        | `nix build .#protoc-gen-py`                  |
-   | `protoc-gen-connectrpc` (+ `protobuf-py`)                | `nix build .#protoc-gen-connectrpc`          |
-   | `protoc-gen-buffa`                                       | `nix build .#protoc-gen-buffa`               |
-   | `protoc-gen-connect-rust`                                | `nix build .#protoc-gen-connect-rust`        |
-   | `protoc-gen-protovalidate-buffa`                         | `nix build .#protoc-gen-protovalidate-buffa` |
-   | `protovalidate`                                          | `nix build .#checks.x86_64-linux.lint-proto` |
-
-4. Copy each `got: sha256-…` from the error into `tools.version.toml`.
-5. Rebuild until it succeeds. For Go packages you usually fix `hash` first, then `vendorHash` on the next build. For Rust crates / `ruff`: `hash` first, then `cargoHash`. For `markdownlint-cli2`: `hash` then `npmDepsHash`.
-6. After codegen plugin bumps, re-run `nix run .#generate` and commit stub diffs if any.
-
-**Field meanings:**
-
-- **Go** (`buf`, `protoc-gen-go`, `protoc-gen-connect-go`, `grpc-health-probe`, `golangci-lint`, `govulncheck`): `hash` = GitHub source archive; `vendorHash` = Go module vendor tree.
-- **Rust crates** (`cargo-audit`, `protoc-gen-*`, `ruff`): `hash` = crates.io / GitHub source; `cargoHash` = vendored Cargo deps.
-- **Python** (`pip-audit`, `protoc-gen-*`, `protobuf-py*`): set `url` to the PyPI wheel URL for that version, `hash` = that wheel. Look up the exact wheel on [PyPI](https://pypi.org/) (Files tab).
-- **Linters (npm)** (`markdownlint-cli2`): GitHub `hash` plus `npmDepsHash`.
-- **Rust plugins** (`protoc-gen-buffa`, `protoc-gen-connect-rust`, `protoc-gen-protovalidate-buffa`): `hash` = source archive; `cargoHash` = vendored Cargo deps. `protoc-gen-connect-rust` uses crate name `connectrpc-codegen` (`crate` field). `protoc-gen-protovalidate-buffa` is built from GitHub (`owner` / `repo` / `rev`) plus `nix/patches/` (crates.io rebuild needs `buffa-types` / `buffa-descriptor`).
-
-**Rust toolchain** for apps is **not** in `tools.version.toml` — it comes from `[workspace.package].rust-version` in root `Cargo.toml` via rust-overlay. Git crate deps (e.g. `mimalloc`) are likewise only in `Cargo.lock`; crane fetches them via `builtins.fetchGit` from that lockfile.
-
-**Go toolchain** for apps is also **not** version-pinned in `tools.version.toml` — it comes from the `go X.Y` line in root `go.mod`. The module vendor tree hash is `[go].vendorHash` in `tools.version.toml` (refresh when `go.sum` changes: set to `lib.fakeHash`, run `nix build .#go-echo-server`, paste the `got:` hash).
-
-**Python toolchain** for apps is likewise **not** in `tools.version.toml` — interpreter comes from `.python-version` (`3.14` → `pkgs.python314`); runtime deps come from `uv.lock` via uv2nix. Refresh by editing `pyproject.toml` / running `uv lock`, then `nix build .#python-echo-client`.
-
-**Protovalidate protos** for hermetic buf are pinned in `tools.version.toml` (`[protovalidate]`) via `fetchFromGitHub` (`bufbuild/protovalidate` tag `v${version}`). Keep the tag aligned with `buf.yaml` deps (`buf.build/bufbuild/protovalidate:v…`). Refresh `hash` like other GitHub pins when bumping.
+Go toolchain follows the `go` line in `go.mod`. Rust toolchain follows `[workspace.package].rust-version` in `Cargo.toml` (`rust.MODULE.bazel`). After codegen plugin bumps, run `bazel run //api/v1:generate` and commit stub diffs.
 
 ## CI
 
-GitHub Actions (`.github/workflows/ci.yml`) — one **Nix** job on `main` pushes and PRs, with [cache-nix-action](https://github.com/nix-community/cache-nix-action) (official GitHub Actions cache for the Nix store):
+GitHub Actions (`.github/workflows/ci.yml`) — one Bazel job on `main` pushes and PRs, with [setup-bazel](https://github.com/bazel-contrib/setup-bazel) disk and repository caches. Bazel version comes from [`.bazelversion`](.bazelversion).
 
-1. `nix run .#lint-all`
-2. `nix run .#generate-check`
-3. `nix run .#vuln-all`
-4. `nix build .#default`
-5. `nix build .#all --dry-run` (evaluate static/cross artifact graph)
-6. `nix run .#test`
+1. `bazel test //api/v1:generate_tests` — hermetic proto codegen vs checked-in stubs
+2. `bazel test //...` — lint, the same stub tests, vuln scanners, unit tests
+3. `bazel build //...` — host Echo binaries and linux cross targets
 
 ## Notes
 

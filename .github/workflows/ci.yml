@@ -5,44 +5,40 @@ on:
     branches: [main]
   pull_request:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
 jobs:
   ci:
-    name: Nix
+    name: Bazel
     runs-on: ubuntu-latest
+    timeout-minutes: 90
     steps:
       - name: Check out repository
         uses: actions/checkout@v7.0.1
 
-      - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@v22
-
-      # Official Actions Cache (one store archive) — avoids Magic Nix Cache GHA throttle/418.
-      - name: Cache Nix store
-        uses: nix-community/cache-nix-action@v7.0.2
+      - name: Set up Bazel
+        uses: bazel-contrib/setup-bazel@0.19.0
         with:
-          primary-key: nix-${{ runner.os }}-${{ hashFiles('flake.lock', 'flake.nix', 'tools.version.toml', 'Cargo.lock', 'go.sum', 'uv.lock') }}
-          restore-prefixes-first-match: nix-${{ runner.os }}-
-          # Keep store under GHA cache size budget (~10G) before save.
-          gc-max-store-size-linux: 8G
-          # No purge: would need permissions.actions: write.
-
-      - name: Lint
-        run: nix run .#lint-all
+          bazelisk-cache: true
+          bazelisk-version: 1.29.0
+          disk-cache: ${{ github.workflow }}
+          repository-cache: true
+          bazelrc: |
+            common --color=yes
+            common --curses=no
+            build --show_timestamps
+            test --test_output=errors
 
       - name: Check generated code is up to date
-        run: nix run .#generate-check
-
-      - name: Vulnerability scan
-        run: nix run .#vuln-all
-
-      - name: Build host artifacts
-        run: nix build .#default --no-link --print-build-logs
-
-      - name: Evaluate full artifact set
-        run: nix build .#all --dry-run
+        run: bazel test //api/v1:generate_tests
 
       - name: Test
-        run: nix run .#test
+        run: bazel test //... --keep_going
+
+      - name: Build
+        run: bazel build //... --keep_going
