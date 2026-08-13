@@ -1,75 +1,13 @@
 """Workspace govulncheck: cd to the repo, run on ./go/..."""
 
-load("@bazel_skylib//lib:shell.bzl", "shell")
-load("//bazel:go_sdk_env.bzl", "GO_SDK_BASH", "GO_TOOLCHAIN_TYPE", "go_sdk", "go_sdk_runfiles")
-load("//bazel:workspace_cd.bzl", "WORKSPACE_BASH")
+load("//bazel:workspace_tool.bzl", "workspace_tool_rule")
 
-_SCRIPT = """\
-#!/usr/bin/env bash
-set -euo pipefail
-
-""" + WORKSPACE_BASH + GO_SDK_BASH + """
-govulncheck=$(_rf {govulncheck})
-_export_goroot "$(_rf {go})"
-cd "$(_workspace_dir "$(_rf {workspace})")"
-exec "$govulncheck" {flags} "$@"
-"""
-
-def _rlocation(file, workspace_name):
-    short = file.short_path
-    if short.startswith("../"):
-        return short[3:]
-    return workspace_name + "/" + short
-
-def _impl(ctx):
-    govulncheck = ctx.executable.govulncheck
-    if not govulncheck:
-        fail("{}: govulncheck {} is not executable".format(
-            ctx.label,
-            ctx.attr.govulncheck.label,
-        ))
-    sdk = go_sdk(ctx)
-
-    script = ctx.actions.declare_file(ctx.label.name + ".bash")
-    ctx.actions.write(
-        output = script,
-        content = _SCRIPT.format(
-            govulncheck = shell.quote(_rlocation(govulncheck, ctx.workspace_name)),
-            go = shell.quote(_rlocation(sdk.go, ctx.workspace_name)),
-            workspace = shell.quote(_rlocation(ctx.file.workspace, ctx.workspace_name)),
-            flags = " ".join([shell.quote(a) for a in ctx.attr.flags]),
-        ),
-        is_executable = True,
-    )
-
-    runfiles = ctx.runfiles(files = [script, govulncheck, ctx.file.workspace])
-    runfiles = runfiles.merge(ctx.attr.govulncheck[DefaultInfo].default_runfiles)
-    runfiles = runfiles.merge(go_sdk_runfiles(ctx, sdk))
-    return [DefaultInfo(
-        executable = script,
-        files = depset([script]),
-        runfiles = runfiles,
-    )]
-
-govulncheck_test = rule(
-    implementation = _impl,
+govulncheck_test = workspace_tool_rule(
     test = True,
-    toolchains = [GO_TOOLCHAIN_TYPE],
-    attrs = {
-        "flags": attr.string_list(
-            doc = "govulncheck arguments after the binary (e.g. ./go/...).",
-        ),
-        "govulncheck": attr.label(
-            default = Label("//bazel/vuln:govulncheck"),
-            executable = True,
-            cfg = "target",
-            doc = "govulncheck binary (go.mod tool).",
-        ),
-        "workspace": attr.label(
-            default = Label("//:MODULE.bazel"),
-            allow_single_file = True,
-            doc = "Repo-root marker used when BUILD_WORKSPACE_DIRECTORY is unset.",
-        ),
-    },
+    tool_attr = "govulncheck",
+    tool_default = "//bazel/vuln:govulncheck",
+    tool_doc = "govulncheck binary (go.mod tool).",
+    flags_doc = "govulncheck arguments after the binary (e.g. ./go/...).",
     doc = "bazel test: govulncheck against the workspace (no-sandbox, needs vuln.go.dev).",
+    use_go_sdk = True,
 )

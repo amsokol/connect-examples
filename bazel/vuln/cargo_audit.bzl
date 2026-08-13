@@ -1,46 +1,8 @@
 """Workspace cargo-audit: audit locked crates from Cargo.lock."""
 
 load("@bazel_skylib//lib:shell.bzl", "shell")
-
-_SCRIPT = """\
-#!/usr/bin/env bash
-set -euo pipefail
-
-_rf() {{
-  local path=$1
-  if [[ -n "${{RUNFILES_DIR:-}}" && -e "${{RUNFILES_DIR}}/${{path}}" ]]; then
-    realpath -- "${{RUNFILES_DIR}}/${{path}}"
-    return
-  fi
-  if [[ -e "$0.runfiles/${{path}}" ]]; then
-    realpath -- "$0.runfiles/${{path}}"
-    return
-  fi
-  echo "unable to locate runfile: ${{path}}" >&2
-  exit 1
-}}
-
-cargo_audit=$(_rf {cargo_audit})
-cargo=$(_rf {cargo})
-lock=$(_rf {lock})
-cd "$(dirname "$lock")"
-
-# tame-index runs `$CARGO -V` (else `cargo`) to pick the crates.io index hash.
-# debian:13 CI has no host cargo; use the rules_rust toolchain binary.
-export CARGO="$cargo"
-export PATH="$(dirname "$cargo"):${{PATH:-}}"
-export CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse
-
-export CARGO_HOME="${{TEST_TMPDIR:-${{TMPDIR:-/tmp}}}}/cargo-audit-home"
-mkdir -p "$CARGO_HOME"
-exec "$cargo_audit" audit {flags} "$@"
-"""
-
-def _rlocation(file, workspace_name):
-    short = file.short_path
-    if short.startswith("../"):
-        return short[3:]
-    return workspace_name + "/" + short
+load("//bazel:runfiles.bzl", "rlocation")
+load("//bazel:workspace_cd.bzl", "RUNFILES_BASH")
 
 def _impl(ctx):
     cargo_audit = ctx.executable.cargo_audit
@@ -57,15 +19,28 @@ def _impl(ctx):
     if not cargo:
         fail("{}: {} has no cargo binary".format(ctx.label, ctx.attr.cargo.label))
 
+    ws = ctx.workspace_name
+    flags = " ".join([shell.quote(a) for a in ctx.attr.flags])
     script = ctx.actions.declare_file(ctx.label.name + ".bash")
     ctx.actions.write(
         output = script,
-        content = _SCRIPT.format(
-            cargo_audit = shell.quote(_rlocation(cargo_audit, ctx.workspace_name)),
-            cargo = shell.quote(_rlocation(cargo, ctx.workspace_name)),
-            lock = shell.quote(_rlocation(ctx.file.lock, ctx.workspace_name)),
-            flags = " ".join([shell.quote(a) for a in ctx.attr.flags]),
-        ),
+        content = "".join([
+            "#!/usr/bin/env bash\n",
+            "set -euo pipefail\n\n",
+            RUNFILES_BASH,
+            "cargo_audit=$(_rf {})\n".format(shell.quote(rlocation(cargo_audit, ws))),
+            "cargo=$(_rf {})\n".format(shell.quote(rlocation(cargo, ws))),
+            "lock=$(_rf {})\n".format(shell.quote(rlocation(ctx.file.lock, ws))),
+            'cd "$(dirname "$lock")"\n\n',
+            "# tame-index runs `$CARGO -V` (else `cargo`) to pick the crates.io index hash.\n",
+            "# debian:13 CI has no host cargo; use the rules_rust toolchain binary.\n",
+            'export CARGO="$cargo"\n',
+            'export PATH="$(dirname "$cargo"):${PATH:-}"\n',
+            "export CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse\n\n",
+            'export CARGO_HOME="${TEST_TMPDIR:-${TMPDIR:-/tmp}}/cargo-audit-home"\n',
+            'mkdir -p "$CARGO_HOME"\n',
+            'exec "$cargo_audit" audit {flags} "$@"\n'.format(flags = flags),
+        ]),
         is_executable = True,
     )
 

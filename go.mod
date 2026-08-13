@@ -1,6 +1,6 @@
 module github.com/amsokol/connect-examples
 
-go 1.26.5
+go 1.26.6
 
 tool (
 	connectrpc.com/connect/cmd/protoc-gen-connect-go
@@ -52,7 +52,7 @@ require (
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
 	github.com/ashanbrown/forbidigo/v2 v2.3.1 // indirect
 	github.com/ashanbrown/makezero/v2 v2.2.1 // indirect
-	github.com/bazelbuild/buildtools v0.0.0-20260128144711-f6a198225003 // indirect
+	github.com/bazelbuild/buildtools v0.0.0-20260319080235-05d2ebe49b0f
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bkielbasa/cyclop v1.2.3 // indirect
 	github.com/blizzy78/varnamelen v0.8.0 // indirect
