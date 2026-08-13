@@ -9,6 +9,7 @@ exports_files([
     "buf.yaml",
     "MODULE.bazel",
     "pnpm-lock.yaml",
+    "pyproject.toml",
     "uv.lock",
 ])
 

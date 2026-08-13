@@ -1,7 +1,19 @@
+load("@aspect_rules_py//uv/unstable:defs.bzl", "py_console_script_binary")
+
 package(default_visibility = ["//visibility:public"])
 
 # Go vuln scanner from go.mod (gazelle-generated binary in go_deps).
 alias(
     name = "govulncheck",
     actual = "@org_golang_x_vuln//cmd/govulncheck:govulncheck",
+)
+
+# Python vuln scanner from pyproject.toml [dependency-groups] `dev`.
+py_console_script_binary(
+    name = "pip-audit",
+    pkg = "@pypi//pip_audit",
+    venv = "dev",
+    # cyclonedx-python-lib imports typing_extensions on the 3.11 toolchain;
+    # the hub marker does not pull it in automatically.
+    deps = ["@pypi//typing_extensions"],
 )

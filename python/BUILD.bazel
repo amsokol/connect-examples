@@ -1,5 +1,6 @@
 load("@aspect_rules_py//py:defs.bzl", "py_library")
 load("//bazel/lint:ruff.bzl", "ruff_run", "ruff_test")
+load("//bazel/vuln:pip_audit.bzl", "pip_audit_test")
 
 # Destination for //api/v1:generate → python/gen (directory sync).
 exports_files(["gen"])
@@ -50,5 +51,22 @@ ruff_run(
     flags = [
         "format",
         "python",
+    ],
+)
+
+pip_audit_test(
+    name = "vuln",
+    size = "small",
+    flags = [
+        "--disable-pip",
+        "--progress-spinner",
+        "off",
+    ],
+    local = True,
+    tags = [
+        "external",
+        "no-cache",
+        "no-sandbox",
+        "requires-network",
     ],
 )
