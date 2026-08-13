@@ -1,0 +1,78 @@
+"""Configuration for Rust toolchains and dependencies.
+
+This module sets up the Rust toolchain, LLVM toolchain, and required crates
+for Rust service development.
+"""
+
+sysroot = use_repo_rule("@toolchains_llvm//toolchain:sysroot.bzl", "sysroot")
+
+# INTEL/AMD64 Sysroot.
+sysroot(
+    name = "sysroot_linux_amd64",
+    sha256 = "0d02706045eb4664e060e1694d192e92812820c5622fdc2ae7aa0720aa3356d6",
+    urls = ["https://github.com/amsokol/cross-compilation-sysroots/releases/download/2026-08-06/debian-trixie-sysroot-amd64.tar.xz"],
+)
+
+# ARM 64 Sysroot.
+sysroot(
+    name = "sysroot_linux_arm64",
+    sha256 = "16ca697e2afe31a704672a08488ea558d8acf0bbc9906e5149f040d37d43df27",
+    urls = ["https://github.com/amsokol/cross-compilation-sysroots/releases/download/2026-08-06/debian-trixie-sysroot-arm64.tar.xz"],
+)
+
+llvm = use_extension("@toolchains_llvm//toolchain/extensions:llvm.bzl", "llvm", dev_dependency = True)
+llvm.toolchain(
+    name = "llvm_toolchain",
+    extra_llvm_distributions = {
+        "LLVM-22.1.8-Linux-ARM64.tar.xz": "805efad2bb91cb4967fa569e0881d10c0f69c04461cf671cccbae19f547acc34",
+        "LLVM-22.1.8-Linux-X64.tar.xz": "df0e1ecf16caf3489a272a5eea4eec9b0d82878f6477fa309504f918a0006384",
+        "LLVM-22.1.8-macOS-ARM64.tar.xz": "f260f4f7c0d430828a81ae8a3826a1d63fc0963ec2459489308cc23b1f7eab4f",
+    },
+    llvm_version = "22.1.8",
+)
+llvm.sysroot(
+    name = "llvm_toolchain",
+    label = "@sysroot_linux_amd64//sysroot:sysroot",
+    targets = ["linux-x86_64"],
+)
+llvm.sysroot(
+    name = "llvm_toolchain",
+    label = "@sysroot_linux_arm64//sysroot:sysroot",
+    targets = ["linux-aarch64"],
+)
+use_repo(llvm, "llvm_toolchain")
+
+register_toolchains(
+    "@llvm_toolchain//:all",
+    dev_dependency = True,
+)
+
+RUST_EDITION = "2024"
+
+RUST_VERSION = "1.97.1"
+
+rust = use_extension("@rules_rust//rust:extensions.bzl", "rust")
+rust.toolchain(
+    edition = RUST_EDITION,
+    extra_target_triples = [
+        "aarch64-unknown-linux-gnu",
+        "x86_64-unknown-linux-gnu",
+    ],
+    versions = [RUST_VERSION],
+)
+use_repo(rust, "rust_toolchains")
+
+register_toolchains("@rust_toolchains//:all")
+
+cargo = use_extension(
+    "@rules_rust//crate_universe:extensions.bzl",
+    "crate",
+)
+cargo.from_cargo(
+    name = "cargo",
+    cargo_lockfile = "//:Cargo.lock",
+    manifests = [
+        "//:Cargo.toml",
+    ],
+)
+use_repo(cargo, "cargo")

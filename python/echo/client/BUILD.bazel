@@ -1,0 +1,31 @@
+load("@aspect_rules_py//py:defs.bzl", "py_binary", "py_library")
+
+_IMPORTS = ["../../.."]
+
+py_library(
+    name = "client_lib",
+    srcs = [
+        "__init__.py",
+        "retry.py",
+    ],
+    imports = _IMPORTS,
+    visibility = ["//visibility:private"],
+    deps = [
+        "//python:gen_py",
+        "//python/echo",
+        "@pypi//connectrpc",
+    ],
+)
+
+py_binary(
+    name = "client",
+    srcs = ["__main__.py"],
+    imports = _IMPORTS,
+    main = "__main__.py",
+    visibility = ["//visibility:public"],
+    deps = [
+        ":client_lib",
+        "@pypi//connectrpc",
+        "@pypi//pyqwest",
+    ],
+)

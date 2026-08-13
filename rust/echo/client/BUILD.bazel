@@ -1,0 +1,37 @@
+load("@rules_rust//rust:defs.bzl", "rust_binary")
+load("//:settings.bzl", "PLATFORMS_PER_ARCH", "RUST_BINARY_ARCHS", "RUST_BUILD_FLAGS_PER_ARCH", "RUST_MULTIARCH_BUILD_FLAGS")
+
+version = "0.1.0"
+
+_DEPS = [
+    "//rust/api",
+    "@cargo//:buffa",
+    "@cargo//:connectrpc",
+    "@cargo//:mimalloc",
+    "@cargo//:serde",
+    "@cargo//:tokio",
+]
+
+# Single binary for multiarch image transitions (:nod_image).
+# Microarch flags come from select() when the platform carries //constraints/amd64:*.
+rust_binary(
+    name = "client",
+    srcs = glob(["src/**/*.rs"]),
+    rustc_flags = RUST_MULTIARCH_BUILD_FLAGS,
+    version = version,
+    visibility = ["//visibility:public"],
+    deps = _DEPS,
+)
+
+[
+    rust_binary(
+        name = "client_%s" % arch,
+        srcs = glob(["src/**/*.rs"]),
+        platform = PLATFORMS_PER_ARCH[arch],
+        rustc_flags = RUST_BUILD_FLAGS_PER_ARCH[arch],
+        version = version,
+        visibility = ["//visibility:public"],
+        deps = _DEPS,
+    )
+    for arch in RUST_BINARY_ARCHS
+]
