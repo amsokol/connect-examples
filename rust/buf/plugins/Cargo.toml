@@ -14,5 +14,6 @@ buffa = { workspace = true }
 buffa-codegen = { workspace = true }
 buffa-descriptor = { workspace = true }
 buffa-types = { workspace = true }
+cargo-audit = { workspace = true }
 connectrpc-codegen = { workspace = true }
 protoc-gen-protovalidate-buffa = { workspace = true }

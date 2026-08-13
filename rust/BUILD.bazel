@@ -1,4 +1,5 @@
 load("@rules_rust//rust:defs.bzl", "rust_clippy_test")
+load("//bazel/vuln:cargo_audit.bzl", "cargo_audit_test")
 
 # First-party crates only. Per-arch binaries share the same sources as :client / :server.
 # rust/buf/plugins is a Cargo lockfile pin, not a rust_* target.
@@ -9,5 +10,17 @@ rust_clippy_test(
         "//rust/api",
         "//rust/echo/client",
         "//rust/echo/server",
+    ],
+)
+
+cargo_audit_test(
+    name = "vuln",
+    size = "small",
+    local = True,
+    tags = [
+        "external",
+        "no-cache",
+        "no-sandbox",
+        "requires-network",
     ],
 )

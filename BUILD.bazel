@@ -8,6 +8,8 @@ exports_files([
     "buf.gen.rust.yaml",
     "buf.yaml",
     "MODULE.bazel",
+    "Cargo.lock",
+    "Cargo.toml",
     "pnpm-lock.yaml",
     "pyproject.toml",
     "uv.lock",

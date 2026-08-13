@@ -24,6 +24,7 @@ buffa-codegen = "=0.8.1"
 buffa-descriptor = "=0.8.1"
 buffa-types = "=0.8.1"
 bytes = "=1.12.1"
+cargo-audit = { version = "=0.22.2", default-features = false }
 connectrpc = { version = "=0.8.1", default-features = false }
 connectrpc-codegen = "=0.8.0"
 connectrpc-health = { version = "=0.8.0", default-features = false }
