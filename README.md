@@ -1,12 +1,12 @@
 # connect-examples
 
-Examples of [Connect](https://connectrpc.com/) RPC in Go, Python, and Rust. Lint, codegen, builds, and CI are [Bazel](https://bazel.build/) (see [`.bazelversion`](.bazelversion)).
+Examples of [Connect](https://connectrpc.com/) RPC in Go, Python, and Rust. The only build system is [Bazel](https://bazel.build/) ([`.bazelversion`](.bazelversion)): codegen, lint, vuln scans, tests, host and Linux cross binaries, and CI.
 
 **Echo** is the first service: Protobuf edition 2023 + Protovalidate; Go and Rust ship server + client; Python ships a client. All speak Connect over HTTP/1.1 and HTTP/2 cleartext (h2c).
 
 ## Prerequisites
 
-[Bazelisk](https://github.com/bazelbuild/bazelisk) (or Bazel **9.2.0**). Toolchains and plugins are pulled by the module; nothing else to install.
+[Bazelisk](https://github.com/bazelbuild/bazelisk) (or Bazel **9.2.0**). Put `bazel` on `PATH`. Toolchains, SDKs, and plugins come from the Bazel module.
 
 ## Generate code
 

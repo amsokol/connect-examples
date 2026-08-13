@@ -11,10 +11,6 @@ __pycache__/
 # Rust
 /target/
 
-# Nix
-/result
-/result-*
-
 # Bazel
 /.bazel/
 
