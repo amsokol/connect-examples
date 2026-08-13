@@ -12,31 +12,64 @@ concurrency:
 permissions:
   contents: read
 
+# LLVM sysroots are Debian 13 (trixie). Host glibc must be >= sysroot glibc
+# or generated/host binaries fail to exec (Bazel exit 36 on ubuntu-24.04).
 jobs:
   ci:
     name: Bazel
     runs-on: ubuntu-latest
+    container:
+      image: debian:13
     timeout-minutes: 90
+    env:
+      BAZELISK_VERSION: 1.29.0
+      BAZELISK_SHA256: 5a408715e932c0250d28bd84555f12edbf70117de42f9181691c736eacc4a992
+      BAZEL_DISK_CACHE: /root/.cache/bazel-disk
+      BAZEL_REPO_CACHE: /root/.cache/bazel-repo
     steps:
+      - name: Install Bazelisk
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          set -euo pipefail
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            ca-certificates \
+            curl \
+            git \
+            patch \
+            python3 \
+            unzip \
+            xz-utils \
+            zip
+          curl -fsSL -o /tmp/bazelisk \
+            "https://github.com/bazelbuild/bazelisk/releases/download/v${BAZELISK_VERSION}/bazelisk-linux-amd64"
+          echo "${BAZELISK_SHA256}  /tmp/bazelisk" | sha256sum -c
+          install -m 0755 /tmp/bazelisk /usr/local/bin/bazel
+          mkdir -p "${BAZEL_DISK_CACHE}" "${BAZEL_REPO_CACHE}"
+          cat >> /root/.bazelrc <<EOF
+          common --color=yes
+          common --curses=no
+          build --show_timestamps
+          build --verbose_failures
+          build --spawn_strategy=processwrapper-sandbox
+          build --disk_cache=${BAZEL_DISK_CACHE}
+          build --repository_cache=${BAZEL_REPO_CACHE}
+          test --test_output=errors
+          EOF
+
       - name: Check out repository
         uses: actions/checkout@v7.0.1
 
-      - name: Set up Bazel
-        uses: bazel-contrib/setup-bazel@0.19.0
+      - name: Cache Bazel
+        uses: actions/cache@v6.1.0
         with:
-          bazelisk-cache: true
-          bazelisk-version: 1.29.0
-          disk-cache: ${{ github.workflow }}
-          repository-cache: true
-          bazelrc: |
-            common --color=yes
-            common --curses=no
-            build --show_timestamps
-            build --verbose_failures
-            # ubuntu-latest is 24.04: AppArmor blocks unprivileged user
-            # namespaces, so linux-sandbox dies with Bazel exit 36.
-            build --spawn_strategy=processwrapper-sandbox
-            test --test_output=errors
+          path: |
+            /root/.cache/bazel-disk
+            /root/.cache/bazel-repo
+          key: bazel-debian13-${{ hashFiles('.bazelversion', 'MODULE.bazel.lock', 'Cargo.lock', 'go.sum', 'uv.lock', 'pnpm-lock.yaml') }}
+          restore-keys: |
+            bazel-debian13-
 
       - name: Check generated code is up to date
         run: bazel test //api/v1:generate_tests --test_output=all

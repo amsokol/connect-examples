@@ -134,7 +134,7 @@ Go toolchain follows the `go` line in `go.mod`. Rust toolchain follows `[workspa
 
 ## CI
 
-GitHub Actions (`.github/workflows/ci.yml`) — one Bazel job on `main` pushes and PRs, with [setup-bazel](https://github.com/bazel-contrib/setup-bazel) disk and repository caches. Bazel version comes from [`.bazelversion`](.bazelversion).
+GitHub Actions (`.github/workflows/ci.yml`) — one Bazel job on `main` pushes and PRs. The job runs in a **Debian 13** container (same userspace as the LLVM sysroots in `rust.MODULE.bazel`) with [Bazelisk](https://github.com/bazelbuild/bazelisk) `1.29.0`. Bazel version comes from [`.bazelversion`](.bazelversion). Disk and repository caches use `actions/cache`.
 
 1. `bazel test //api/v1:generate_tests` — hermetic proto codegen vs checked-in stubs
 2. `bazel test //...` — lint, the same stub tests, vuln scanners, unit tests
