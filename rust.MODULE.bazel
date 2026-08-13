@@ -77,20 +77,20 @@ cargo.from_cargo(
     ],
 )
 cargo.annotation(
-    crate = "protovalidate-buffa-protos",
     build_script_data = ["@nod//bazel/buf:protoc_prefix"],
     build_script_env = {
         "PROTOC": "$(execpath @nod//bazel/buf:protoc_prefix)/bin/protoc",
     },
+    crate = "protovalidate-buffa-protos",
     data_glob = ["proto/**"],
-    deps = [
-        "@cargo//:buffa-descriptor",
-        "@cargo//:buffa-types",
-    ],
     label_injections = {"@nod": "@nod"},
     patch_args = ["-p1"],
     patches = ["//rust/buf/plugins:protovalidate-buffa-protos-buffa-types.patch"],
     repositories = ["cargo"],
+    deps = [
+        "@cargo//:buffa-descriptor",
+        "@cargo//:buffa-types",
+    ],
 )
 use_repo(cargo, "cargo")
 

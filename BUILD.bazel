@@ -6,6 +6,9 @@ exports_files([
     "buf.gen.python.yaml",
     "buf.gen.rust.yaml",
     "buf.yaml",
+    ".golangci.yaml",
+    "go.mod",
+    "go.sum",
     "pyproject.toml",
     "uv.lock",
 ])

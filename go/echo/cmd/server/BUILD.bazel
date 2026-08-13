@@ -40,3 +40,9 @@ go_test(
     srcs = ["main_test.go"],
     embed = [":server_lib"],
 )
+
+filegroup(
+    name = "lint_srcs",
+    srcs = glob(["*.go"]),
+    visibility = ["//visibility:public"],
+)

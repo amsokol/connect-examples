@@ -2,6 +2,12 @@ load("//bazel/lint:ruff.bzl", "ruff_binary")
 
 package(default_visibility = ["//visibility:public"])
 
+# Go linter from go.mod (gazelle-generated binary in go_deps).
+alias(
+    name = "golangci-lint",
+    actual = "@com_github_golangci_golangci_lint_v2//cmd/golangci-lint:golangci-lint",
+)
+
 ruff_binary(
     name = "ruff",
     pkg = "@pypi//ruff",
