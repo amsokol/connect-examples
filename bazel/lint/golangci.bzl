@@ -1,14 +1,16 @@
 """Workspace golangci-lint: cd to the repo, run on ./go/..."""
 
 load("@bazel_skylib//lib:shell.bzl", "shell")
+load("//bazel:go_sdk_env.bzl", "GO_SDK_BASH", "GO_TOOLCHAIN_TYPE", "go_sdk", "go_sdk_runfiles")
 load("//bazel:workspace_cd.bzl", "WORKSPACE_BASH")
 
 _SCRIPT = """\
 #!/usr/bin/env bash
 set -euo pipefail
 
-""" + WORKSPACE_BASH + """
+""" + WORKSPACE_BASH + GO_SDK_BASH + """
 golangci=$(_rf {golangci})
+_export_goroot "$(_rf {go})"
 cd "$(_workspace_dir "$(_rf {workspace})")"
 exec "$golangci" {flags} "$@"
 """
@@ -26,12 +28,14 @@ def _impl(ctx):
             ctx.label,
             ctx.attr.golangci.label,
         ))
+    sdk = go_sdk(ctx)
 
     script = ctx.actions.declare_file(ctx.label.name + ".bash")
     ctx.actions.write(
         output = script,
         content = _SCRIPT.format(
             golangci = shell.quote(_rlocation(golangci, ctx.workspace_name)),
+            go = shell.quote(_rlocation(sdk.go, ctx.workspace_name)),
             workspace = shell.quote(_rlocation(ctx.file.workspace, ctx.workspace_name)),
             flags = " ".join([shell.quote(a) for a in ctx.attr.flags]),
         ),
@@ -40,6 +44,7 @@ def _impl(ctx):
 
     runfiles = ctx.runfiles(files = [script, golangci, ctx.file.workspace])
     runfiles = runfiles.merge(ctx.attr.golangci[DefaultInfo].default_runfiles)
+    runfiles = runfiles.merge(go_sdk_runfiles(ctx, sdk))
     return [DefaultInfo(
         executable = script,
         files = depset([script]),
@@ -49,6 +54,7 @@ def _impl(ctx):
 golangci_test = rule(
     implementation = _impl,
     test = True,
+    toolchains = [GO_TOOLCHAIN_TYPE],
     attrs = {
         "flags": attr.string_list(
             doc = "golangci-lint arguments after the binary (e.g. run ./go/...).",
