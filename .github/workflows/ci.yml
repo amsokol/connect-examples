@@ -12,17 +12,8 @@ concurrency:
 permissions:
   contents: read
 
-# LLVM sysroots are Debian 13 (trixie). Host glibc must be >= sysroot glibc
-# or generated/host binaries fail to exec (Bazel exit 36 on ubuntu-24.04).
-# Prebuilt LLVM ld.lld needs host libxml2.so.2 (and libz / libstdc++).
-# Python sdists (msgpack, …) compile with LLVM cc_wrapper.sh, which searches
-# the host for libc headers — not the sysroot — so libc6-dev is required.
-#
-# Lint/vuln wrappers cd to the checkout via BUILD_WORKSPACE_DIRECTORY or
-# realpath(MODULE.bazel). Compile stays on processwrapper-sandbox (standalone
-# spawn cannot digest the sysroot's dangling compat-ld/ld). TestRunner is
-# standalone so those wrappers see the live tree. Flags go to /etc/bazel.bazelrc
-# (GHA containers set HOME=/github/home, not /root).
+# Same host as the LLVM Debian 13 sysroots. libxml2 is required by prebuilt
+# ld.lld; libc6-dev by Python native sdists (msgpack) compiled with that clang.
 jobs:
   ci:
     name: Bazel
@@ -33,11 +24,8 @@ jobs:
     env:
       BAZELISK_VERSION: 1.29.0
       BAZELISK_SHA256: 5a408715e932c0250d28bd84555f12edbf70117de42f9181691c736eacc4a992
-      BAZEL_DISK_CACHE: /root/.cache/bazel-disk
-      BAZEL_REPO_CACHE: /root/.cache/bazel-repo
-      BUILD_WORKSPACE_DIRECTORY: ${{ github.workspace }}
     steps:
-      - name: Install Bazelisk
+      - name: Install dependencies
         env:
           DEBIAN_FRONTEND: noninteractive
         run: |
@@ -48,30 +36,16 @@ jobs:
             curl \
             git \
             libc6-dev \
-            libstdc++6 \
             libxml2 \
-            patch \
-            python3 \
-            unzip \
-            xz-utils \
-            zip \
-            zlib1g
+            patch
+
+      - name: Install Bazelisk
+        run: |
+          set -euo pipefail
           curl -fsSL -o /tmp/bazelisk \
             "https://github.com/bazelbuild/bazelisk/releases/download/v${BAZELISK_VERSION}/bazelisk-linux-amd64"
           echo "${BAZELISK_SHA256}  /tmp/bazelisk" | sha256sum -c
           install -m 0755 /tmp/bazelisk /usr/local/bin/bazel
-          mkdir -p "${BAZEL_DISK_CACHE}" "${BAZEL_REPO_CACHE}"
-          cat > /etc/bazel.bazelrc <<EOF
-          common --color=yes
-          common --curses=no
-          build --show_timestamps
-          build --verbose_failures
-          build --spawn_strategy=processwrapper-sandbox
-          test --strategy=TestRunner=standalone
-          build --disk_cache=${BAZEL_DISK_CACHE}
-          build --repository_cache=${BAZEL_REPO_CACHE}
-          test --test_output=errors
-          EOF
 
       - name: Check out repository
         uses: actions/checkout@v7.0.1
@@ -79,9 +53,7 @@ jobs:
       - name: Cache Bazel
         uses: actions/cache@v6.1.0
         with:
-          path: |
-            /root/.cache/bazel-disk
-            /root/.cache/bazel-repo
+          path: /github/home/.cache/bazel
           key: bazel-debian13-${{ hashFiles('.bazelversion', 'MODULE.bazel.lock', 'Cargo.lock', 'go.sum', 'uv.lock', 'pnpm-lock.yaml') }}
           restore-keys: |
             bazel-debian13-
