@@ -1,3 +1,4 @@
+load("@aspect_rules_py//uv/unstable:defs.bzl", "py_console_script_binary")
 load("//bazel/buf:plugin.bzl", "buf_plugin")
 load("//bazel/buf:protoc_prefix.bzl", "protoc_prefix")
 
@@ -18,6 +19,19 @@ alias(
 alias(
     name = "protoc-gen-connect-go",
     actual = "@com_connectrpc_connect//cmd/protoc-gen-connect-go:protoc-gen-connect-go",
+)
+
+# Root @pypi hub. venv is the pyproject.toml [dependency-groups] name.
+py_console_script_binary(
+    name = "protoc-gen-py",
+    pkg = "@pypi//protoc_gen_py",
+    venv = "dev",
+)
+
+py_console_script_binary(
+    name = "protoc-gen-connectrpc",
+    pkg = "@pypi//protoc_gen_connectrpc",
+    venv = "dev",
 )
 
 # Bin-only crate (no lib); built from the crates.io source + @cargo libs.

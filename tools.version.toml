@@ -82,26 +82,20 @@ npmDepsHash = "sha256-jtONdZPfpnOOiDH8UmFFWDgwcOYvTnBo8FkY8Ec+TYU="
 # --- Python plugins (PyPI wheels) ---
 
 [protoc-gen-py]
-version = "0.2.0"
-url = "https://files.pythonhosted.org/packages/32/25/ef7cd45c5a486ecc4ce33b0233f98bc7cddc03d1999cd5f6c9877457b209/protoc_gen_py-0.2.0-py3-none-any.whl"
-hash = "sha256-JzyvA9/z/mKDSHWmPY4NsLIT1AvgTng25G60mJnn8A8="
+version = "0.1.1"
+url = "https://files.pythonhosted.org/packages/fe/64/1496fa3df28d7100d4c33f9588930cda1dc5c2652031df4f4f433c1558ef/protoc_gen_py-0.1.1-py3-none-any.whl"
+hash = "sha256-VZQESTjh7oiB/Okx6bcD/lVvUY3md15KmNilDRR6dsw="
 
-# Runtime dep of protoc-gen-py (exact wheel pinned by that plugin's packaging).
+# Shared by both Python buf plugins and connectrpc (protobuf-py==0.1.1).
 [protobuf-py]
-version = "0.2.0"
-url = "https://files.pythonhosted.org/packages/74/78/f86aba47416d66fab4f522bca7916920b94e5e5cf73e79ea49c6a5e5c8ab/protobuf_py-0.2.0-py3-none-any.whl"
-hash = "sha256-aBE0D1qAPE4jV12e5HwAwTheGNk5ZLjLrLD6huszePM="
+version = "0.1.1"
+url = "https://files.pythonhosted.org/packages/fd/00/1b3775aca1c70e3007e06ef5996f6bb9b3a32341eb0cce3ffb6effad8dec/protobuf_py-0.1.1-py3-none-any.whl"
+hash = "sha256-78T1Dyde1trhCh8wu4GtGnU2hVez/yKlMrekcgUDaPE="
 
 [protoc-gen-connectrpc]
 version = "0.11.1"
 url = "https://files.pythonhosted.org/packages/12/cf/3c6ba9d5b3153e58338c3768eba3637e531e80349e5553f871c9e2ce2643/protoc_gen_connectrpc-0.11.1-py3-none-any.whl"
 hash = "sha256-poRBcCqrhmTRvvNmYXPb0edxf8J6BP2mXAqfJLon3N4="
-
-# Runtime dep of protoc-gen-connectrpc (pinned by that package to 0.1.1).
-[protobuf-py-for-connectrpc]
-version = "0.1.1"
-url = "https://files.pythonhosted.org/packages/fd/00/1b3775aca1c70e3007e06ef5996f6bb9b3a32341eb0cce3ffb6effad8dec/protobuf_py-0.1.1-py3-none-any.whl"
-hash = "sha256-78T1Dyde1trhCh8wu4GtGnU2hVez/yKlMrekcgUDaPE="
 
 # --- Rust plugins (crates.io) ---
 

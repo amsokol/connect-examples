@@ -109,6 +109,8 @@ dev = [
     { name = "build" },
     { name = "connectrpc" },
     { name = "pip-audit" },
+    { name = "protoc-gen-connectrpc" },
+    { name = "protoc-gen-py" },
     { name = "ruff" },
     { name = "setuptools" },
     { name = "wheel" },
@@ -122,6 +124,8 @@ dev = [
     { name = "build", specifier = "==1.5.0" },
     { name = "connectrpc", specifier = "==0.11.1" },
     { name = "pip-audit", specifier = "==2.10.1" },
+    { name = "protoc-gen-connectrpc", specifier = "==0.11.1" },
+    { name = "protoc-gen-py", specifier = "==0.1.1" },
     { name = "ruff", specifier = "==0.16.2" },
     { name = "setuptools", specifier = "==84.0.0" },
     { name = "wheel", specifier = "==0.48.0" },
@@ -374,6 +378,30 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/60/f9/416103c93677ff2ea407704ea64fa6de9e700dc030c48360a182d91ce373/protobuf_py_ext-0.1.1-cp314-cp314t-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:8a4adc65ab6a5e4885c67fc808bcacb83d755d05b566d312a0e10c2a873f2ad4", size = 321895, upload-time = "2026-06-24T19:02:07.714Z" },
     { url = "https://files.pythonhosted.org/packages/5a/83/eb3e81bb2f83834b7deff4cee2d56eeb1adcbc847492a56b7f910ab257db/protobuf_py_ext-0.1.1-cp314-cp314t-musllinux_1_2_aarch64.whl", hash = "sha256:e97f45c49676efacfb8e95bfcb1a002bc337e618a6780be1e55df2ba5ebd2f1e", size = 486091, upload-time = "2026-06-24T19:02:09.243Z" },
     { url = "https://files.pythonhosted.org/packages/99/96/bd88fca38556b3105e4dd41d6a176e31dcc583fe979e830aeedd2f8c20ee/protobuf_py_ext-0.1.1-cp314-cp314t-musllinux_1_2_x86_64.whl", hash = "sha256:53a6b3590f6aa7f97b8ed60f62fef9b096babfeae82f7283fd3a4c405827d4f8", size = 534582, upload-time = "2026-06-24T19:02:11.227Z" },
+]
+
+[[package]]
+name = "protoc-gen-connectrpc"
+version = "0.11.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "protobuf-py" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/da/24/4a1f13797a3c0c5b179e4f70e8907a303c28376d3ba88ca095e4d58b750f/protoc_gen_connectrpc-0.11.1.tar.gz", hash = "sha256:99a482ca7c35fd755ee6157a4e0eb09171481b06257144dad4503b83b4ac85a3", size = 9418, upload-time = "2026-07-15T06:33:32.452Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/12/cf/3c6ba9d5b3153e58338c3768eba3637e531e80349e5553f871c9e2ce2643/protoc_gen_connectrpc-0.11.1-py3-none-any.whl", hash = "sha256:a68441702aab8664d1bef3666173dbd1e7717fc27a04fda65c0a9f24ba27dcde", size = 10524, upload-time = "2026-07-15T06:33:30.559Z" },
+]
+
+[[package]]
+name = "protoc-gen-py"
+version = "0.1.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "protobuf-py" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/b1/d4/ff2a8219fc7caa8991c64a81ed3ae8cb5aabcf9186bce1955c07d9d5b6b3/protoc_gen_py-0.1.1.tar.gz", hash = "sha256:b67101c6b0493e4deb9eaa47731441eabaac29e4d1248a7b8d0e4b5b098539b3", size = 11012, upload-time = "2026-06-24T19:02:18.062Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/fe/64/1496fa3df28d7100d4c33f9588930cda1dc5c2652031df4f4f433c1558ef/protoc_gen_py-0.1.1-py3-none-any.whl", hash = "sha256:5594044938e1ee8881fce931e9b703fe556f518de6775e4a98d8a50d147a76cc", size = 12551, upload-time = "2026-06-24T19:02:14.077Z" },
 ]
 
 [[package]]

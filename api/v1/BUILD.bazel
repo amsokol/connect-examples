@@ -33,6 +33,19 @@ buf_generate(
 )
 
 buf_generate(
+    name = "python",
+    ensure_python_init = True,
+    include_imports = True,
+    module = ":module",
+    outdir = "python/gen",
+    plugins = [
+        "//bazel/buf:protoc-gen-py",
+        "//bazel/buf:protoc-gen-connectrpc",
+    ],
+    template = "//:buf.gen.python.yaml",
+)
+
+buf_generate(
     name = "rust",
     full_tree = True,
     module = ":module",
@@ -50,6 +63,7 @@ write_source_files(
     check_that_out_file_exists = False,
     files = {
         "//go/api:v1": ":go",
+        "//python:gen": ":python",
         "//rust/api:gen": ":rust",
     },
 )

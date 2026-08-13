@@ -29,3 +29,9 @@ py_binary(
         "@pypi//pyqwest",
     ],
 )
+
+filegroup(
+    name = "lint_srcs",
+    srcs = glob(["*.py"]),
+    visibility = ["//visibility:public"],
+)

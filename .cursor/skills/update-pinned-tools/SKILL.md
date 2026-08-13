@@ -41,7 +41,7 @@ Pins live in `tools.version.toml` at the repo root. Overlay wiring is in `nix/to
    | `ruff` | `nix build .#ruff --no-link` |
    | `markdownlint-cli2` | `nix build .#markdownlint-cli2 --no-link` |
    | `protoc-gen-py` (+ `protobuf-py`) | `nix build .#protoc-gen-py --no-link` |
-   | `protoc-gen-connectrpc` (+ `protobuf-py-for-connectrpc`) | `nix build .#protoc-gen-connectrpc --no-link` |
+   | `protoc-gen-connectrpc` (+ `protobuf-py`) | `nix build .#protoc-gen-connectrpc --no-link` |
    | `protoc-gen-buffa` | `nix build .#protoc-gen-buffa --no-link` |
    | `protoc-gen-connect-rust` | `nix build .#protoc-gen-connect-rust --no-link` |
    | `protoc-gen-protovalidate-buffa` | `nix build .#protoc-gen-protovalidate-buffa --no-link` |

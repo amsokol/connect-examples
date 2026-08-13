@@ -21,6 +21,9 @@ dev = [
     "build==1.5.0",
     "connectrpc==0.11.1",
     "pip-audit==2.10.1",
+    "protoc-gen-connectrpc==0.11.1",
+    # 0.3.0 needs protobuf-py 0.3.0; connectrpc==0.11.1 needs protobuf-py==0.1.1.
+    "protoc-gen-py==0.1.1",
     "ruff==0.16.2",
     "setuptools==84.0.0",
     "wheel==0.48.0",

@@ -164,7 +164,7 @@ All overlaid tools and plugins are pinned in [`tools.version.toml`](tools.versio
    | `ruff`                                                   | `nix build .#ruff`                           |
    | `markdownlint-cli2`                                      | `nix build .#markdownlint-cli2`              |
    | `protoc-gen-py` (+ `protobuf-py`)                        | `nix build .#protoc-gen-py`                  |
-   | `protoc-gen-connectrpc` (+ `protobuf-py-for-connectrpc`) | `nix build .#protoc-gen-connectrpc`          |
+   | `protoc-gen-connectrpc` (+ `protobuf-py`)                | `nix build .#protoc-gen-connectrpc`          |
    | `protoc-gen-buffa`                                       | `nix build .#protoc-gen-buffa`               |
    | `protoc-gen-connect-rust`                                | `nix build .#protoc-gen-connect-rust`        |
    | `protoc-gen-protovalidate-buffa`                         | `nix build .#protoc-gen-protovalidate-buffa` |

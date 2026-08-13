@@ -1,8 +1,4 @@
-"""
-Python dependencies for Bazel via aspect_rules_py + uv.
-
-Single source of truth: repo-root pyproject.toml + uv.lock.
-"""
+"""Python app and Buf plugin deps from the root uv.lock (@pypi)."""
 
 uv = use_extension("@aspect_rules_py//uv/unstable:extension.bzl", "uv")
 uv.declare_hub(

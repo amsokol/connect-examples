@@ -16,7 +16,7 @@
       # Go plugins: overlaid in toolchains.nix from tools.version.toml.
       inherit (pkgs) protoc-gen-go protoc-gen-connect-go;
 
-      # --- Python (each plugin gets its own env; deps versions differ) ---
+      # --- Python (PyPI wheels; both plugins share protobuf-py 0.1.1 with connectrpc) ---
       # protobuf-py declares protobuf-py-ext; codegen plugins typically only need
       # the pure-Python CodeGeneratorRequest path, so skip the runtime-dep check.
       mkPyWheel =
@@ -49,11 +49,10 @@
         };
 
       protobuf-py = mkPyWheel versions."protobuf-py" "protobuf-py";
-      protobuf-py-for-connectrpc = mkPyWheel versions."protobuf-py-for-connectrpc" "protobuf-py";
 
       protoc-gen-py = mkPyApp versions."protoc-gen-py" "protoc-gen-py" [ protobuf-py ];
       protoc-gen-connectrpc = mkPyApp versions."protoc-gen-connectrpc" "protoc-gen-connectrpc" [
-        protobuf-py-for-connectrpc
+        protobuf-py
       ];
 
       # --- Rust ---

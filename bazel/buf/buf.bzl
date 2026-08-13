@@ -145,6 +145,14 @@ def _buf_generate_impl(ctx):
         "fi",
         'cp -a "{}/." "$OUT/"'.format(generated_rel),
     ]
+    if ctx.attr.ensure_python_init:
+        lines.extend([
+            'find "$OUT" -type d -print0 | while IFS= read -r -d "" d; do',
+            '  if [[ ! -f "$d/__init__.py" ]]; then',
+            "    printf '%s\\n' 'from __future__ import annotations' > \"$d/__init__.py\"",
+            "  fi",
+            "done",
+        ])
 
     _run_buf(
         ctx,
@@ -192,6 +200,10 @@ With include_imports or full_tree: full `<outdir>/` tree.
         "full_tree": attr.bool(
             default = False,
             doc = "Copy the whole outdir tree without --include-imports.",
+        ),
+        "ensure_python_init": attr.bool(
+            default = False,
+            doc = "Write missing __init__.py under the generated tree (protoc-gen-py omits them).",
         ),
         "plugins": _PLUGIN_ATTR,
         "_buf": _BUF_ATTR,
