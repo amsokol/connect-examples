@@ -184,7 +184,7 @@ var File_api_v1_echo_proto protoreflect.FileDescriptor
 
 const file_api_v1_echo_proto_rawDesc = "" +
 	"\n" +
-	"\x11api/v1/echo.proto\x12\x06api.v1\x1a!google/protobuf/go_features.proto\x1a\x1bbuf/validate/validate.proto\"3\n" +
+	"\x11api/v1/echo.proto\x12\x06api.v1\x1a\x1bbuf/validate/validate.proto\x1a!google/protobuf/go_features.proto\"3\n" +
 	"\vEchoRequest\x12$\n" +
 	"\amessage\x18\x01 \x01(\tB\n" +
 	"\xbaH\a\xc8\x01\x01r\x02\x10\x01R\amessage\"(\n" +

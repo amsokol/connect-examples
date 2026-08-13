@@ -1,0 +1,19 @@
+load("@protobuf//bazel:proto_library.bzl", "proto_library")
+
+package(default_visibility = ["//visibility:public"])
+
+filegroup(
+    name = "files",
+    srcs = glob(["**/*.proto"]),
+)
+
+proto_library(
+    name = "validate_proto",
+    srcs = ["buf/validate/validate.proto"],
+    deps = [
+        "@protobuf//:descriptor_proto",
+        "@protobuf//:duration_proto",
+        "@protobuf//:field_mask_proto",
+        "@protobuf//:timestamp_proto",
+    ],
+)

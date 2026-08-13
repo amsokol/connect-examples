@@ -4,11 +4,9 @@ load("//bazel/buf:protoc_prefix.bzl", "protoc_prefix")
 
 package(default_visibility = ["//visibility:public"])
 
-# Source files are not targets; buf_module's implicit //bazel/buf:buf.yaml needs this.
-exports_files(
-    ["buf.yaml"],
-    visibility = ["//visibility:private"],
-)
+exports_files([
+    "protovalidate.BUILD.bazel",
+])
 
 # Go plugins from go.mod (gazelle-generated binaries in go_deps).
 alias(

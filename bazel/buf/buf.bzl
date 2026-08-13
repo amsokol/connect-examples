@@ -1,8 +1,8 @@
-"""Hermetic buf generate/lint for Bazel.
+"""Hermetic buf generate for Bazel.
 
 Buf CLI: prebuilt from @rules_buf_toolchains (cannot use go_binary — bufprivateusage).
 Codegen plugins are Bazel-built executables on PATH (not host PATH, not BSR remotes).
-Workspace config is //bazel/buf:buf.yaml. Protovalidate protos come from
+Workspace lint/format config is //:buf.yaml. Protovalidate protos come from
 @protovalidate_proto and are staged at third_party/protovalidate (no BSR network).
 """
 
@@ -13,8 +13,20 @@ BufGeneratedInfo = provider(
     },
 )
 
-# Must match the local module path in //bazel/buf:buf.yaml.
+# Local module path for vendored protovalidate inside the staged generate tree.
 _PROTOVALIDATE_MODULE_PATH = "third_party/protovalidate"
+
+# Staged generate config. Workspace //:buf.yaml is `path: api`; here the
+# module root is the staged tree (`.`) so plugin `out` paths keep `api/v1`.
+_STAGED_BUF_YAML = """\
+version: v2
+modules:
+  - path: .
+    includes:
+      - api
+  - path: {protovalidate}
+    name: buf.build/bufbuild/protovalidate
+""".format(protovalidate = _PROTOVALIDATE_MODULE_PATH)
 
 def _module_directory(ctx):
     """Single TreeArtifact from a buf_module dependency."""
@@ -210,58 +222,17 @@ With include_imports or full_tree: full `<outdir>/` tree.
     },
 )
 
-def _buf_lint_test_impl(ctx):
-    module_dir = _module_directory(ctx)
-    marker = ctx.actions.declare_file(ctx.label.name + ".ok")
-    _run_buf(
-        ctx,
-        module_dir = module_dir,
-        outputs = [marker],
-        extra_inputs = [],
-        extra_tools = [],
-        lines = [
-            'MARKER="$PWD/{}"'.format(marker.path),
-            'mkdir -p "$(dirname "$MARKER")"',
-            'export HOME="$WORKDIR/home"',
-            'export BUF_CACHE_DIR="$WORKDIR/buf-cache"',
-            'mkdir -p "$HOME" "$BUF_CACHE_DIR"',
-            'cd "$WORKDIR"',
-            '"$BUF" lint --path api',
-            'touch "$MARKER"',
-        ],
-        mnemonic = "BufLint",
-        progress_message = "Linting %{label} with buf",
-    )
-    runner = ctx.actions.declare_file(ctx.label.name + ".sh")
-    ctx.actions.write(
-        output = runner,
-        content = "#!/usr/bin/env bash\nset -euo pipefail\nexit 0\n",
-        is_executable = True,
-    )
-    return [DefaultInfo(
-        executable = runner,
-        runfiles = ctx.runfiles(files = [marker]),
-    )]
-
-buf_lint_test = rule(
-    implementation = _buf_lint_test_impl,
-    doc = "Hermetic `buf lint` test over a buf_module.",
-    attrs = {
-        "module": _MODULE_ATTR,
-        "_buf": _BUF_ATTR,
-    },
-    test = True,
-)
-
 def _buf_module_impl(ctx):
-    """Stage //bazel/buf:buf.yaml + protos + vendored protovalidate into a TreeArtifact."""
+    """Stage //:buf.yaml layout + vendored protovalidate into a TreeArtifact."""
     out = ctx.actions.declare_directory(ctx.label.name)
+    staged_yaml = ctx.actions.declare_file(ctx.label.name + ".buf.yaml")
+    ctx.actions.write(output = staged_yaml, content = _STAGED_BUF_YAML)
     lines = [
         "set -euo pipefail",
         'OUT="{}"'.format(out.path),
         'rm -rf "$OUT"',
         'mkdir -p "$OUT/{}"'.format(_PROTOVALIDATE_MODULE_PATH),
-        'cp "{}" "$OUT/buf.yaml"'.format(ctx.file._config.path),
+        'cp "{}" "$OUT/buf.yaml"'.format(staged_yaml.path),
     ]
     for src in ctx.files.srcs:
         lines.append('mkdir -p "$OUT/$(dirname "{}")"'.format(src.short_path))
@@ -274,7 +245,7 @@ def _buf_module_impl(ctx):
         lines.append('cp "{}" "$OUT/{}/{}"'.format(src.path, _PROTOVALIDATE_MODULE_PATH, rel))
     ctx.actions.run_shell(
         outputs = [out],
-        inputs = depset(direct = [ctx.file._config] + ctx.files.srcs + ctx.files.protovalidate),
+        inputs = depset(direct = [staged_yaml] + ctx.files.srcs + ctx.files.protovalidate),
         command = "\n".join(lines),
         mnemonic = "BufModule",
         progress_message = "Staging buf module %{label}",
@@ -284,19 +255,15 @@ def _buf_module_impl(ctx):
 
 buf_module = rule(
     implementation = _buf_module_impl,
-    doc = """Directory with //bazel/buf:buf.yaml, vendored protovalidate, and protos at workspace-relative paths.
+    doc = """Directory with staged buf.yaml, vendored protovalidate, and protos at workspace-relative paths.
 
-Shared by buf_generate and buf_lint_test. Does not fetch BSR modules.
+Shared by buf_generate. Does not fetch BSR modules.
 """,
     attrs = {
         "srcs": attr.label_list(
             allow_files = [".proto"],
             mandatory = True,
             doc = "Protobuf sources (paths preserved under the module root).",
-        ),
-        "_config": attr.label(
-            allow_single_file = True,
-            default = Label("//bazel/buf:buf.yaml"),
         ),
         "protovalidate": attr.label(
             allow_files = True,

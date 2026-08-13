@@ -5,6 +5,7 @@ exports_files([
     "buf.gen.go.yaml",
     "buf.gen.python.yaml",
     "buf.gen.rust.yaml",
+    "buf.yaml",
     "pyproject.toml",
     "uv.lock",
 ])

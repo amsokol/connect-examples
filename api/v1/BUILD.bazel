@@ -1,5 +1,7 @@
 load("@bazel_lib//lib:write_source_files.bzl", "write_source_files")
-load("//bazel/buf:buf.bzl", "buf_generate", "buf_lint_test", "buf_module")
+load("@protobuf//bazel:proto_library.bzl", "proto_library")
+load("@rules_buf//buf:defs.bzl", "buf_format", "buf_lint_test")
+load("//bazel/buf:buf.bzl", "buf_generate", "buf_module")
 
 filegroup(
     name = "protos",
@@ -7,17 +9,33 @@ filegroup(
     visibility = ["//visibility:public"],
 )
 
-# Staged buf module shared by generate and lint.
-buf_module(
-    name = "module",
-    srcs = [":protos"],
+proto_library(
+    name = "echo_proto",
+    srcs = ["echo.proto"],
     visibility = ["//visibility:public"],
+    deps = [
+        "@protobuf//:go_features_proto",
+        "@protovalidate_proto//:validate_proto",
+    ],
 )
 
 buf_lint_test(
     name = "lint",
     size = "small",
-    module = ":module",
+    config = "//:buf.yaml",
+    module = "api",
+    targets = [":echo_proto"],
+)
+
+buf_format(
+    name = "format",
+)
+
+# Staged buf module for generate.
+buf_module(
+    name = "module",
+    srcs = [":protos"],
+    visibility = ["//visibility:public"],
 )
 
 buf_generate(

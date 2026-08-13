@@ -1,0 +1,11 @@
+# Workspace config for rules_buf (buf_lint_test, buf_format).
+# Generate vendors protovalidate inside buf_module; that tree is not in git.
+version: v2
+modules:
+  - path: api
+lint:
+  use:
+    - STANDARD
+breaking:
+  use:
+    - FILE
