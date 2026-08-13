@@ -14,6 +14,7 @@ permissions:
 
 # LLVM sysroots are Debian 13 (trixie). Host glibc must be >= sysroot glibc
 # or generated/host binaries fail to exec (Bazel exit 36 on ubuntu-24.04).
+# Prebuilt LLVM ld.lld also needs host libxml2.so.2 (and libz / libstdc++).
 jobs:
   ci:
     name: Bazel
@@ -37,11 +38,14 @@ jobs:
             ca-certificates \
             curl \
             git \
+            libstdc++6 \
+            libxml2 \
             patch \
             python3 \
             unzip \
             xz-utils \
-            zip
+            zip \
+            zlib1g
           curl -fsSL -o /tmp/bazelisk \
             "https://github.com/bazelbuild/bazelisk/releases/download/v${BAZELISK_VERSION}/bazelisk-linux-amd64"
           echo "${BAZELISK_SHA256}  /tmp/bazelisk" | sha256sum -c
@@ -75,7 +79,7 @@ jobs:
         run: bazel test //api/v1:generate_tests --test_output=all
 
       - name: Test
-        run: bazel test //... --keep_going
+        run: bazel test //... --keep_going --test_output=all
 
       - name: Build
         run: bazel build //... --keep_going
