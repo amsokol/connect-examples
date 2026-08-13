@@ -32,10 +32,14 @@ jobs:
             common --color=yes
             common --curses=no
             build --show_timestamps
+            build --verbose_failures
+            # ubuntu-latest is 24.04: AppArmor blocks unprivileged user
+            # namespaces, so linux-sandbox dies with Bazel exit 36.
+            build --spawn_strategy=processwrapper-sandbox
             test --test_output=errors
 
       - name: Check generated code is up to date
-        run: bazel test //api/v1:generate_tests
+        run: bazel test //api/v1:generate_tests --test_output=all
 
       - name: Test
         run: bazel test //... --keep_going
