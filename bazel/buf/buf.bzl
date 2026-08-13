@@ -61,6 +61,7 @@ def _plugin_path_lines(ctx):
             fail("{}: plugin {} has no executable".format(ctx.label, target.label))
         name = target.label.name
         lines.append('PLUGIN_{}="$(realpath "{}")"'.format(i, exe.path))
+
         # Quote $@ so it is expanded when buf invokes the wrapper, not when
         # this action writes the wrapper (unquoted EOF would bake in "").
         lines.append("\n".join([

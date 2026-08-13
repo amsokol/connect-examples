@@ -1,0 +1,20 @@
+load("//bazel:buildifier.bzl", "buildifier_run", "buildifier_test")
+
+buildifier_test(
+    name = "lint",
+    size = "small",
+    flags = [
+        "-mode=check",
+        "-lint=warn",
+    ],
+    tags = [
+        "external",
+        "no-cache",
+        "no-sandbox",
+    ],
+)
+
+buildifier_run(
+    name = "format",
+    flags = ["-mode=fix"],
+)

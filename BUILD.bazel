@@ -9,6 +9,7 @@ exports_files([
     ".golangci.yaml",
     "go.mod",
     "go.sum",
+    "MODULE.bazel",
     "pyproject.toml",
     "uv.lock",
 ])
