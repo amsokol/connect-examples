@@ -18,9 +18,11 @@ permissions:
 # Python sdists (msgpack, …) compile with LLVM cc_wrapper.sh, which searches
 # the host for libc headers — not the sysroot — so libc6-dev is required.
 #
-# GHA containers set HOME=/github/home (not /root). Lint/vuln wrappers cd to
-# the checkout via BUILD_WORKSPACE_DIRECTORY or realpath(MODULE.bazel); a
-# copying processwrapper sandbox leaves only the marker ("no go.mod").
+# Lint/vuln wrappers cd to the checkout via BUILD_WORKSPACE_DIRECTORY or
+# realpath(MODULE.bazel). Compile stays on processwrapper-sandbox (standalone
+# spawn cannot digest the sysroot's dangling compat-ld/ld). TestRunner is
+# standalone so those wrappers see the live tree. Flags go to /etc/bazel.bazelrc
+# (GHA containers set HOME=/github/home, not /root).
 jobs:
   ci:
     name: Bazel
@@ -35,9 +37,6 @@ jobs:
       BAZEL_REPO_CACHE: /root/.cache/bazel-repo
       BUILD_WORKSPACE_DIRECTORY: ${{ github.workspace }}
     steps:
-      - name: Restore container HOME
-        run: echo HOME=/root >> "$GITHUB_ENV"
-
       - name: Install Bazelisk
         env:
           DEBIAN_FRONTEND: noninteractive
@@ -68,7 +67,7 @@ jobs:
           build --show_timestamps
           build --verbose_failures
           build --spawn_strategy=processwrapper-sandbox
-          test --spawn_strategy=standalone
+          test --strategy=TestRunner=standalone
           build --disk_cache=${BAZEL_DISK_CACHE}
           build --repository_cache=${BAZEL_REPO_CACHE}
           test --test_output=errors
