@@ -1,28 +1,15 @@
 """Workspace markdownlint-cli2: cd to the repo, run against config globs."""
 
 load("@bazel_skylib//lib:shell.bzl", "shell")
+load("//bazel:workspace_cd.bzl", "WORKSPACE_BASH")
 
 _SCRIPT = """\
 #!/usr/bin/env bash
 set -euo pipefail
 
-_rf() {{
-  local path=$1
-  if [[ -n "${{RUNFILES_DIR:-}}" && -e "${{RUNFILES_DIR}}/${{path}}" ]]; then
-    realpath -- "${{RUNFILES_DIR}}/${{path}}"
-    return
-  fi
-  if [[ -e "$0.runfiles/${{path}}" ]]; then
-    realpath -- "$0.runfiles/${{path}}"
-    return
-  fi
-  echo "unable to locate runfile: ${{path}}" >&2
-  exit 1
-}}
-
+""" + WORKSPACE_BASH + """
 markdownlint=$(_rf {markdownlint})
-module=$(_rf {workspace})
-cd "${{BUILD_WORKSPACE_DIRECTORY:-$(dirname "$module")}}"
+cd "$(_workspace_dir "$(_rf {workspace})")"
 export BAZEL_BINDIR="${{BAZEL_BINDIR:-.}}"
 export JS_BINARY__CHDIR="$PWD"
 exec "$markdownlint" {flags} "$@"

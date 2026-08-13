@@ -13,7 +13,8 @@ permissions:
   contents: read
 
 # Same host as the LLVM Debian 13 sysroots. libxml2 is required by prebuilt
-# ld.lld; libc6-dev by Python native sdists (msgpack) compiled with that clang.
+# ld.lld. Python native sdists (msgpack) invoke LLVM clang without Bazel
+# linker flags, so they need libc6-dev and host ld (binutils).
 jobs:
   ci:
     name: Bazel
@@ -32,6 +33,7 @@ jobs:
           set -euo pipefail
           apt-get update
           apt-get install -y --no-install-recommends \
+            binutils \
             ca-certificates \
             curl \
             git \
