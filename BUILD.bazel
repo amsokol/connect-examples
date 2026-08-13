@@ -2,6 +2,9 @@ load("//constraints/amd64:defs.bzl", "AMD64_VARIANTS")
 load("//constraints/arm64:defs.bzl", "ARM64_VARIANTS")
 
 exports_files([
+    "buf.gen.go.yaml",
+    "buf.gen.python.yaml",
+    "buf.gen.rust.yaml",
     "pyproject.toml",
     "uv.lock",
 ])

@@ -1,0 +1,48 @@
+load("//bazel/buf:plugin.bzl", "buf_plugin")
+load("//bazel/buf:protoc_prefix.bzl", "protoc_prefix")
+
+package(default_visibility = ["//visibility:public"])
+
+# Source files are not targets; buf_module's implicit //bazel/buf:buf.yaml needs this.
+exports_files(
+    ["buf.yaml"],
+    visibility = ["//visibility:private"],
+)
+
+# Go plugins from go.mod (gazelle-generated binaries in go_deps).
+alias(
+    name = "protoc-gen-go",
+    actual = "@org_golang_google_protobuf//cmd/protoc-gen-go:protoc-gen-go",
+)
+
+alias(
+    name = "protoc-gen-connect-go",
+    actual = "@com_connectrpc_connect//cmd/protoc-gen-connect-go:protoc-gen-connect-go",
+)
+
+# Bin-only crate (no lib); built from the crates.io source + @cargo libs.
+buf_plugin(
+    name = "protoc-gen-buffa",
+    actual = "@protoc_gen_buffa_src//:protoc-gen-buffa",
+)
+
+# crate_universe rust_binary names end in __bin; buf_plugin keeps PATH names.
+buf_plugin(
+    name = "protoc-gen-connect-rust",
+    actual = "@cargo//:connectrpc-codegen__protoc-gen-connect-rust",
+)
+
+buf_plugin(
+    name = "protoc-gen-protovalidate-buffa",
+    actual = "@cargo//:protoc-gen-protovalidate-buffa__protoc-gen-protovalidate-buffa",
+)
+
+# protovalidate-buffa-protos build.rs finds WKTs at $PROTOC/../../include.
+# protoc comes from protobuf's prebuilt toolchain, not @protobuf//:protoc.
+protoc_prefix(
+    name = "protoc_prefix",
+    wkts = [
+        "@protobuf//:descriptor_proto_srcs",
+        "@protobuf//:well_known_type_protos",
+    ],
+)

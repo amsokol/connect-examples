@@ -1,6 +1,10 @@
 load("@rules_rust//rust:defs.bzl", "rust_library")
 
-exports_files(["Cargo.toml"])
+exports_files([
+    "Cargo.toml",
+    # Destination for //api/v1:generate → rust/api/gen (directory sync).
+    "gen",
+])
 
 rust_library(
     name = "api",

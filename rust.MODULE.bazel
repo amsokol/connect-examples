@@ -71,8 +71,36 @@ cargo = use_extension(
 cargo.from_cargo(
     name = "cargo",
     cargo_lockfile = "//:Cargo.lock",
+    generate_binaries = True,
     manifests = [
         "//:Cargo.toml",
     ],
 )
+cargo.annotation(
+    crate = "protovalidate-buffa-protos",
+    build_script_data = ["@nod//bazel/buf:protoc_prefix"],
+    build_script_env = {
+        "PROTOC": "$(execpath @nod//bazel/buf:protoc_prefix)/bin/protoc",
+    },
+    data_glob = ["proto/**"],
+    deps = [
+        "@cargo//:buffa-descriptor",
+        "@cargo//:buffa-types",
+    ],
+    label_injections = {"@nod": "@nod"},
+    patch_args = ["-p1"],
+    patches = ["//rust/buf/plugins:protovalidate-buffa-protos-buffa-types.patch"],
+    repositories = ["cargo"],
+)
 use_repo(cargo, "cargo")
+
+http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
+http_archive(
+    name = "protoc_gen_buffa_src",
+    build_file = "//rust/buf/plugins:protoc_gen_buffa.BUILD",
+    integrity = "sha256-VdbD6JPO4a33H9D3lHWyrVhCxZuaNov8wmrQnajMW3A=",
+    strip_prefix = "protoc-gen-buffa-0.8.1",
+    type = "tar.gz",
+    urls = ["https://static.crates.io/crates/protoc-gen-buffa/protoc-gen-buffa-0.8.1.crate"],
+)

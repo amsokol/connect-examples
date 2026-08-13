@@ -1,0 +1,5 @@
+exports_files([
+    "Cargo.toml",
+    "protoc_gen_buffa.BUILD",
+    "protovalidate-buffa-protos-buffa-types.patch",
+])
