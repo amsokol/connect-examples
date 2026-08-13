@@ -3,3 +3,5 @@
 common --experimental_platform_in_output_dir
 # Use a symlink prefix to avoid clobbering the workspace root.
 build --symlink_prefix=.bazel/
+# @pypi packages from pyproject [dependency-groups] `dev` (ruff, plugins).
+common --@aspect_rules_py//uv/private/constraints/venv:venv=dev

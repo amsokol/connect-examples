@@ -29,7 +29,7 @@ def main() -> int:
         ) as client:
             try:
                 res = client.echo(EchoRequest(message="Jane"))
-            except (ConnectError, OSError, TimeoutError, ConnectionError):
+            except ConnectError, OSError, TimeoutError, ConnectionError:
                 log.exception("echo RPC failed")
                 return 1
 

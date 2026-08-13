@@ -1,0 +1,8 @@
+load("//bazel/lint:ruff.bzl", "ruff_binary")
+
+package(default_visibility = ["//visibility:public"])
+
+ruff_binary(
+    name = "ruff",
+    pkg = "@pypi//ruff",
+)

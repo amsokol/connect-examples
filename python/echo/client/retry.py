@@ -35,7 +35,7 @@ class RetryInterceptor:
         for attempt in range(_MAX_RETRIES):
             try:
                 return call_next(request, ctx)
-            except Exception as err:  # noqa: PERF203
+            except Exception as err:
                 last_error = err
                 if not _is_retryable(err) or attempt == _MAX_RETRIES - 1:
                     raise
