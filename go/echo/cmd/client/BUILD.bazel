@@ -39,9 +39,3 @@ go_test(
     srcs = ["retry_test.go"],
     embed = [":client_lib"],
 )
-
-filegroup(
-    name = "lint_srcs",
-    srcs = glob(["*.go"]),
-    visibility = ["//visibility:public"],
-)

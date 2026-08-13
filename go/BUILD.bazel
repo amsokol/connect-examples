@@ -1,22 +1,17 @@
-load("@bazel_skylib//rules:native_binary.bzl", "native_test")
+load("//bazel/lint:golangci.bzl", "golangci_test")
 
-native_test(
+golangci_test(
     name = "lint",
     size = "small",
-    src = "//bazel/lint:golangci-lint",
-    out = "lint",
-    args = [
+    flags = [
         "run",
         "./go/...",
     ],
-    data = [
-        "//:.golangci.yaml",
-        "//:go.mod",
-        "//:go.sum",
-        "//go/api:lint_srcs",
-        "//go/echo/cmd/client:lint_srcs",
-        "//go/echo/cmd/server:lint_srcs",
-    ],
     # go list needs modules; sandbox has GOPROXY=off and no cache.
     local = True,
+    tags = [
+        "external",
+        "no-cache",
+        "no-sandbox",
+    ],
 )
