@@ -14,7 +14,13 @@ permissions:
 
 # LLVM sysroots are Debian 13 (trixie). Host glibc must be >= sysroot glibc
 # or generated/host binaries fail to exec (Bazel exit 36 on ubuntu-24.04).
-# Prebuilt LLVM ld.lld also needs host libxml2.so.2 (and libz / libstdc++).
+# Prebuilt LLVM ld.lld needs host libxml2.so.2 (and libz / libstdc++).
+# Python sdists (msgpack, …) compile with LLVM cc_wrapper.sh, which searches
+# the host for libc headers — not the sysroot — so libc6-dev is required.
+#
+# GHA containers set HOME=/github/home (not /root). Lint/vuln wrappers cd to
+# the checkout via BUILD_WORKSPACE_DIRECTORY or realpath(MODULE.bazel); a
+# copying processwrapper sandbox leaves only the marker ("no go.mod").
 jobs:
   ci:
     name: Bazel
@@ -27,7 +33,11 @@ jobs:
       BAZELISK_SHA256: 5a408715e932c0250d28bd84555f12edbf70117de42f9181691c736eacc4a992
       BAZEL_DISK_CACHE: /root/.cache/bazel-disk
       BAZEL_REPO_CACHE: /root/.cache/bazel-repo
+      BUILD_WORKSPACE_DIRECTORY: ${{ github.workspace }}
     steps:
+      - name: Restore container HOME
+        run: echo HOME=/root >> "$GITHUB_ENV"
+
       - name: Install Bazelisk
         env:
           DEBIAN_FRONTEND: noninteractive
@@ -38,6 +48,7 @@ jobs:
             ca-certificates \
             curl \
             git \
+            libc6-dev \
             libstdc++6 \
             libxml2 \
             patch \
@@ -51,12 +62,13 @@ jobs:
           echo "${BAZELISK_SHA256}  /tmp/bazelisk" | sha256sum -c
           install -m 0755 /tmp/bazelisk /usr/local/bin/bazel
           mkdir -p "${BAZEL_DISK_CACHE}" "${BAZEL_REPO_CACHE}"
-          cat >> /root/.bazelrc <<EOF
+          cat > /etc/bazel.bazelrc <<EOF
           common --color=yes
           common --curses=no
           build --show_timestamps
           build --verbose_failures
           build --spawn_strategy=processwrapper-sandbox
+          test --spawn_strategy=standalone
           build --disk_cache=${BAZEL_DISK_CACHE}
           build --repository_cache=${BAZEL_REPO_CACHE}
           test --test_output=errors
