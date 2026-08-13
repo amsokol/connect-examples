@@ -5,6 +5,9 @@ config:
   MD013: false
   # Allow HTML in docs if needed later.
   MD033: false
+  # Skills repeat Required/Forbidden under different parents.
+  MD024:
+    siblings_only: true
 
 globs:
   - "**/*.md"
@@ -13,3 +16,4 @@ ignores:
   - ".venv/**"
   - "result*/**"
   - "**/node_modules/**"
+  - ".bazel/**"

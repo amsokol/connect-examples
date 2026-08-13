@@ -1,3 +1,5 @@
+load("@npm//:markdownlint-cli2/package_json.bzl", markdownlint_cli2_bin = "bin")
+load("//bazel/lint:markdown.bzl", "markdownlint_test")
 load("//bazel/lint:ruff.bzl", "ruff_binary")
 
 package(default_visibility = ["//visibility:public"])
@@ -17,4 +19,18 @@ alias(
 ruff_binary(
     name = "ruff",
     pkg = "@pypi//ruff",
+)
+
+markdownlint_cli2_bin.markdownlint_cli2_binary(
+    name = "markdownlint-cli2",
+)
+
+markdownlint_test(
+    name = "markdown",
+    size = "small",
+    tags = [
+        "external",
+        "no-cache",
+        "no-sandbox",
+    ],
 )

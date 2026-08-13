@@ -1,4 +1,4 @@
-"""Hermetic ruff wheel binary and workspace-wide check/format tests."""
+"""Hermetic ruff wheel binary, workspace check tests, and format run targets."""
 
 load("@bazel_lib//lib:copy_file.bzl", "COPY_FILE_TOOLCHAINS", "copy_file_action")
 load("@bazel_skylib//lib:shell.bzl", "shell")
@@ -64,7 +64,7 @@ _rf() {{
 ruff=$(_rf {ruff})
 module=$(_rf {workspace})
 cd "${{BUILD_WORKSPACE_DIRECTORY:-$(dirname "$module")}}"
-exec "$ruff" {flags} "$@"
+{ruff_cmds}
 """
 
 def _rlocation(file, workspace_name):
@@ -73,7 +73,19 @@ def _rlocation(file, workspace_name):
         return short[3:]
     return workspace_name + "/" + short
 
-def _ruff_test_impl(ctx):
+def _ruff_cmds(ctx):
+    if not ctx.attr.flags:
+        fail("{}: flags must be non-empty".format(ctx.label))
+    first = " ".join([shell.quote(a) for a in ctx.attr.flags])
+    if not ctx.attr.also:
+        return 'exec "$ruff" {} "$@"'.format(first)
+    second = " ".join([shell.quote(a) for a in ctx.attr.also])
+    return '"$ruff" {first}\nexec "$ruff" {second} "$@"'.format(
+        first = first,
+        second = second,
+    )
+
+def _ruff_impl(ctx):
     ruff = ctx.executable.ruff
     if not ruff:
         fail("{}: ruff {} is not executable".format(ctx.label, ctx.attr.ruff.label))
@@ -84,7 +96,7 @@ def _ruff_test_impl(ctx):
         content = _SCRIPT.format(
             ruff = shell.quote(_rlocation(ruff, ctx.workspace_name)),
             workspace = shell.quote(_rlocation(ctx.file.workspace, ctx.workspace_name)),
-            flags = " ".join([shell.quote(a) for a in ctx.attr.flags]),
+            ruff_cmds = _ruff_cmds(ctx),
         ),
         is_executable = True,
     )
@@ -97,24 +109,36 @@ def _ruff_test_impl(ctx):
         runfiles = runfiles,
     )]
 
+_ATTRS = {
+    "also": attr.string_list(
+        doc = "Optional second ruff argv (e.g. format --check python) after flags.",
+    ),
+    "flags": attr.string_list(
+        doc = "ruff arguments after the binary (e.g. check python).",
+    ),
+    "ruff": attr.label(
+        default = Label("//bazel/lint:ruff"),
+        executable = True,
+        cfg = "target",
+        doc = "Ruff binary from the @pypi wheel.",
+    ),
+    "workspace": attr.label(
+        default = Label("//:MODULE.bazel"),
+        allow_single_file = True,
+        doc = "Repo-root marker used when BUILD_WORKSPACE_DIRECTORY is unset.",
+    ),
+}
+
+ruff_run = rule(
+    implementation = _ruff_impl,
+    executable = True,
+    attrs = _ATTRS,
+    doc = "bazel run: ruff against the workspace (writes when invoked as format).",
+)
+
 ruff_test = rule(
-    implementation = _ruff_test_impl,
+    implementation = _ruff_impl,
     test = True,
-    attrs = {
-        "flags": attr.string_list(
-            doc = "ruff arguments after the binary (e.g. check python).",
-        ),
-        "ruff": attr.label(
-            default = Label("//bazel/lint:ruff"),
-            executable = True,
-            cfg = "target",
-            doc = "Ruff binary from the @pypi wheel.",
-        ),
-        "workspace": attr.label(
-            default = Label("//:MODULE.bazel"),
-            allow_single_file = True,
-            doc = "Repo-root marker used when BUILD_WORKSPACE_DIRECTORY is unset.",
-        ),
-    },
-    doc = "bazel test: ruff against the workspace (no-sandbox).",
+    attrs = _ATTRS,
+    doc = "bazel test: ruff against the workspace (no-sandbox, check-only).",
 )

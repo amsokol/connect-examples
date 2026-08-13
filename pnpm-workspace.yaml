@@ -1,0 +1,5 @@
+# markdownlint-cli2 has no native lifecycle scripts.
+allowBuilds: {}
+catalog:
+  markdownlint-cli2: 0.23.2
+hoist: false

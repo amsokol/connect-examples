@@ -1,5 +1,5 @@
 load("@aspect_rules_py//py:defs.bzl", "py_library")
-load("//bazel/lint:ruff.bzl", "ruff_test")
+load("//bazel/lint:ruff.bzl", "ruff_run", "ruff_test")
 
 # Destination for //api/v1:generate → python/gen (directory sync).
 exports_files(["gen"])
@@ -29,6 +29,11 @@ py_library(
 ruff_test(
     name = "lint",
     size = "small",
+    also = [
+        "format",
+        "--check",
+        "python",
+    ],
     flags = [
         "check",
         "python",
@@ -40,17 +45,10 @@ ruff_test(
     ],
 )
 
-ruff_test(
+ruff_run(
     name = "format",
-    size = "small",
     flags = [
         "format",
-        "--check",
         "python",
-    ],
-    tags = [
-        "external",
-        "no-cache",
-        "no-sandbox",
     ],
 )
