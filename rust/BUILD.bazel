@@ -1,0 +1,13 @@
+load("@rules_rust//rust:defs.bzl", "rust_clippy_test")
+
+# First-party crates only. Per-arch binaries share the same sources as :client / :server.
+# rust/buf/plugins is a Cargo lockfile pin, not a rust_* target.
+rust_clippy_test(
+    name = "lint",
+    size = "small",
+    targets = [
+        "//rust/api",
+        "//rust/echo/client",
+        "//rust/echo/server",
+    ],
+)
