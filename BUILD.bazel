@@ -7,7 +7,6 @@ exports_files([
     "buf.gen.rust.yaml",
     "buf.yaml",
     "MODULE.bazel",
-    "pyproject.toml",
     "uv.lock",
 ])
 

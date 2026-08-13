@@ -1,6 +1,7 @@
-"""Hermetic ruff: native wheel binary as the test executable."""
+"""Hermetic ruff wheel binary and workspace-wide check/format tests."""
 
 load("@bazel_lib//lib:copy_file.bzl", "COPY_FILE_TOOLCHAINS", "copy_file_action")
+load("@bazel_skylib//lib:shell.bzl", "shell")
 
 def _ruff_binary_impl(ctx):
     """Copy `bin/ruff` out of the installed ruff wheel (no console_scripts)."""
@@ -42,49 +43,78 @@ ruff_binary = rule(
     toolchains = COPY_FILE_TOOLCHAINS,
 )
 
+_SCRIPT = """\
+#!/usr/bin/env bash
+set -euo pipefail
+
+_rf() {{
+  local path=$1
+  if [[ -n "${{RUNFILES_DIR:-}}" && -e "${{RUNFILES_DIR}}/${{path}}" ]]; then
+    realpath -- "${{RUNFILES_DIR}}/${{path}}"
+    return
+  fi
+  if [[ -e "$0.runfiles/${{path}}" ]]; then
+    realpath -- "$0.runfiles/${{path}}"
+    return
+  fi
+  echo "unable to locate runfile: ${{path}}" >&2
+  exit 1
+}}
+
+ruff=$(_rf {ruff})
+module=$(_rf {workspace})
+cd "${{BUILD_WORKSPACE_DIRECTORY:-$(dirname "$module")}}"
+exec "$ruff" {flags} "$@"
+"""
+
+def _rlocation(file, workspace_name):
+    short = file.short_path
+    if short.startswith("../"):
+        return short[3:]
+    return workspace_name + "/" + short
+
 def _ruff_test_impl(ctx):
-    ruff = ctx.attr._ruff[DefaultInfo]
-    ruff_exe = ruff.files_to_run.executable
-    if not ruff_exe:
-        fail("{}: ruff binary {} is not executable".format(ctx.label, ctx.attr._ruff.label))
+    ruff = ctx.executable.ruff
+    if not ruff:
+        fail("{}: ruff {} is not executable".format(ctx.label, ctx.attr.ruff.label))
 
-    exe = ctx.actions.declare_file(ctx.label.name)
-    ctx.actions.symlink(output = exe, target_file = ruff_exe, is_executable = True)
-
-    runfiles = ctx.runfiles(
-        files = ctx.files.srcs + [ctx.file.config, exe],
-    ).merge(ruff.default_runfiles)
-
-    return [
-        DefaultInfo(
-            executable = exe,
-            runfiles = runfiles,
+    script = ctx.actions.declare_file(ctx.label.name + ".bash")
+    ctx.actions.write(
+        output = script,
+        content = _SCRIPT.format(
+            ruff = shell.quote(_rlocation(ruff, ctx.workspace_name)),
+            workspace = shell.quote(_rlocation(ctx.file.workspace, ctx.workspace_name)),
+            flags = " ".join([shell.quote(a) for a in ctx.attr.flags]),
         ),
-    ]
+        is_executable = True,
+    )
+
+    runfiles = ctx.runfiles(files = [script, ruff, ctx.file.workspace])
+    runfiles = runfiles.merge(ctx.attr.ruff[DefaultInfo].default_runfiles)
+    return [DefaultInfo(
+        executable = script,
+        files = depset([script]),
+        runfiles = runfiles,
+    )]
 
 ruff_test = rule(
     implementation = _ruff_test_impl,
-    doc = """Runs hermetic ruff as the test executable.
-
-    Pass ruff subcommands via the implicit test `args` (e.g. `check python`).
-    `srcs` and `config` are in the test runfiles at their workspace paths.
-    """,
     test = True,
     attrs = {
-        "config": attr.label(
-            allow_single_file = True,
-            mandatory = True,
-            doc = "Ruff config (root pyproject.toml).",
+        "flags": attr.string_list(
+            doc = "ruff arguments after the binary (e.g. check python).",
         ),
-        "srcs": attr.label_list(
-            allow_files = True,
-            mandatory = True,
-            doc = "Python sources to place in runfiles.",
-        ),
-        "_ruff": attr.label(
+        "ruff": attr.label(
             default = Label("//bazel/lint:ruff"),
             executable = True,
             cfg = "target",
+            doc = "Ruff binary from the @pypi wheel.",
+        ),
+        "workspace": attr.label(
+            default = Label("//:MODULE.bazel"),
+            allow_single_file = True,
+            doc = "Repo-root marker used when BUILD_WORKSPACE_DIRECTORY is unset.",
         ),
     },
+    doc = "bazel test: ruff against the workspace (no-sandbox).",
 )

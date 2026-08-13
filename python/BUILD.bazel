@@ -26,38 +26,31 @@ py_library(
     ],
 )
 
-# Hand-written sources only; python/gen is extend-exclude in pyproject.toml.
-filegroup(
-    name = "lint_srcs",
-    srcs = glob(["*.py"]),
-    visibility = ["//visibility:public"],
-)
-
-_RUFF_SRCS = [
-    ":lint_srcs",
-    "//python/echo:lint_srcs",
-    "//python/echo/client:lint_srcs",
-]
-
 ruff_test(
     name = "lint",
     size = "small",
-    srcs = _RUFF_SRCS,
-    args = [
+    flags = [
         "check",
         "python",
     ],
-    config = "//:pyproject.toml",
+    tags = [
+        "external",
+        "no-cache",
+        "no-sandbox",
+    ],
 )
 
 ruff_test(
     name = "format",
     size = "small",
-    srcs = _RUFF_SRCS,
-    args = [
+    flags = [
         "format",
         "--check",
         "python",
     ],
-    config = "//:pyproject.toml",
+    tags = [
+        "external",
+        "no-cache",
+        "no-sandbox",
+    ],
 )

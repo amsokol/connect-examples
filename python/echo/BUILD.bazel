@@ -7,9 +7,3 @@ py_library(
     visibility = ["//visibility:public"],
     deps = ["//python:python_pkg"],
 )
-
-filegroup(
-    name = "lint_srcs",
-    srcs = glob(["*.py"]),
-    visibility = ["//visibility:public"],
-)
