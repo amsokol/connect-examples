@@ -1,5 +1,0 @@
-exports_files([
-    "Cargo.toml",
-    "protoc_gen_buffa.BUILD.bazel",
-    "protovalidate-buffa-protos-buffa-types.patch",
-])

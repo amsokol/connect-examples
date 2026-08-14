@@ -2,10 +2,8 @@
 name: update-pinned-tools
 description: >-
   Bump tool and plugin versions in Bazel modules and language lockfiles.
-  Use when updating buf, golangci-lint, govulncheck, ruff, pip-audit,
-  cargo-audit, markdownlint-cli2, protoc-gen-*, protovalidate, LLVM,
-  Node, or when the user asks to refresh pinned tools. For
-  protoc-gen-protovalidate-buffa, also refresh rust/buf/plugins patches.
+  Use when updating buf, ruff, pip-audit, cargo-audit, protoc-gen-*,
+  protovalidate, LLVM, Node, or when the user asks to refresh pinned tools.
 ---
 
 # Update pinned tools
@@ -17,16 +15,21 @@ Pins live in language lockfiles and `*.MODULE.bazel`. After a bump, refresh the 
 | What | Pin | Lock / verify |
 | --- | --- | --- |
 | Go toolchain | `go` line in root `go.mod` | `go.sum`; `go_sdk.from_file` in `go.MODULE.bazel` |
-| Go tools (`buildifier`, `golangci-lint`, `govulncheck`, `protoc-gen-go`, `protoc-gen-connect-go`) | root `go.mod` `tool` / `require` | `go.sum`; then `bazel test //go:lint //go:vuln` |
+| golangci-lint | `bazel_utils/go/golangci.MODULE.bazel` `_GOLANGCI` + `http_archive` sha256 | then `bazel test //go:lint` |
+| govulncheck | `bazel_utils/go/go.mod` `tool` | `bazel_utils/go/go.sum`; then `bazel test //go:vuln` |
+| buildifier | `bazel_utils/bazel/buildifier.MODULE.bazel` `_BUILDIFIER` + `http_file` sha256 | then `bazel test //bazel:lint` |
+| markdownlint-cli2 | `bazel_utils/markdown/pnpm-workspace.yaml` catalog | `bazel_utils/markdown/pnpm-lock.yaml`; then `bazel test //bazel:markdown` |
+| ruff | `bazel_utils/python/ruff.MODULE.bazel` `_RUFF` + `http_archive` sha256 | then `bazel test //python:lint` |
+| pip-audit | `bazel_utils/python/pyproject.toml` | `bazel_utils/python/uv.lock`; then `bazel test //python:vuln` |
+| cargo-audit | `bazel_utils/rust/cargo_audit.MODULE.bazel` `_CARGO_AUDIT` + `http_archive` sha256 | then `bazel test //rust:vuln` |
 | Rust toolchain | `Cargo.toml` `[workspace.package].rust-version` | `rust.MODULE.bazel` `RUST_VERSION` (keep in sync) |
-| Rust apps, Buf plugins, `cargo-audit` | root `Cargo.toml` `[workspace.dependencies]` | `Cargo.lock`; crate_universe in `rust.MODULE.bazel` |
-| `protoc-gen-buffa` crate source | `http_archive` in `rust.MODULE.bazel` | `integrity` + `strip_prefix` |
-| `protovalidate-buffa-protos` patch | `rust/buf/plugins/protovalidate-buffa-protos-buffa-types.patch` | crate_universe `patches` in `rust.MODULE.bazel` |
-| Python interpreter | `.python-version` | `python.MODULE.bazel` uv hub |
-| Python apps and tools (`ruff`, `pip-audit`, Buf Python plugins) | root `pyproject.toml` | `uv.lock` |
-| Markdownlint | `pnpm-workspace.yaml` catalog | `pnpm-lock.yaml`; `js.MODULE.bazel` Node/pnpm versions |
-| Buf CLI | `buf.MODULE.bazel` `buf.toolchains(version)` | `MODULE.bazel.lock` |
-| Protovalidate `.proto` archive | `buf.MODULE.bazel` `http_archive` (`integrity`, tag in `urls`) | keep tag aligned with generate/lint |
+| Rust apps | root `Cargo.toml` `[workspace.dependencies]` | `Cargo.lock`; crate_universe in `rust.MODULE.bazel` |
+| Python interpreter | `.python-version` + `python.toolchain(python_version)` in `python.MODULE.bazel` | `python.MODULE.bazel` uv hub |
+| Python apps | root `pyproject.toml` | `uv.lock` |
+| Remote Buf plugins | `buf.gen.go.yaml`, `buf.gen.python.yaml`, `buf.gen.rust.yaml` | BSR |
+| Buf CLI | `buf.toolchains(version)` | `bazel_utils/buf/registry.bzl` `CLI` sha256; then `bazel run @buf//:buf -- --version` |
+| Local Buf plugin (`protoc-gen-protovalidate-buffa`) | `buf.plugins(name, version)` + `bazel_utils/buf/registry.bzl` `PLUGINS` + `buf/plugins/<name>/<version>/Cargo.toml` | that version's `Cargo.lock`; crate_universe in `buf/plugins/<name>/<version>/crates.MODULE.bazel` |
+| Protovalidate proto module | `buf.yaml` `deps` | BSR |
 | LLVM + Debian sysroots | `rust.MODULE.bazel` | hashes in `llvm.toolchain` / `sysroot` |
 
 ## Workflow
@@ -36,12 +39,11 @@ Pins live in language lockfiles and `*.MODULE.bazel`. After a bump, refresh the 
 3. After **codegen plugin** bumps: `bazel run //api/v1:generate` and commit stub diffs.
 4. Prove it: `bazel test //api/v1:generate_tests` plus the matching lint/vuln test.
 
-### `protoc-gen-protovalidate-buffa` (git + patch)
+### `protoc-gen-protovalidate-buffa`
 
-Built from GitHub, not crates.io — the published plugin rebuilds `protovalidate-buffa-protos` without `buffa-types` / `buffa-descriptor`, which buffa 0.8 codegen requires for WKTs.
+Built from GitHub, not crates.io.
 
 When bumping:
 
-1. Update the crate / git pin in root `Cargo.toml` `[workspace.dependencies]`.
-2. Refresh `rust/buf/plugins/protovalidate-buffa-protos-buffa-types.patch` so `protovalidate-buffa-protos` still depends on `buffa-types` + `buffa-descriptor` and re-exports `buffa_types::google`.
-3. Update `Cargo.lock` and crate_universe, then `bazel run //api/v1:generate`.
+1. Add `buf/plugins/protoc-gen-protovalidate-buffa/<version>/` (Cargo.toml git tag, crate_universe). Keep runtime `protovalidate-buffa` in root `Cargo.toml` in lockstep. Point `buf.plugins(version)` / `registry.bzl` at the new package.
+2. Update that version's `Cargo.lock` and `cargo-bazel-lock.json` (`CARGO_BAZEL_REPIN=1 bazel build //plugins/protoc-gen-protovalidate-buffa/<version>:protoc-gen-protovalidate-buffa` from `bazel_utils/buf` with `--override_module=bazel_utils_core=../core`). Update the consumer `Cargo.lock`, then `bazel run //api/v1:generate`.

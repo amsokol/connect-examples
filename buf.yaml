@@ -1,8 +1,11 @@
-# Workspace config for rules_buf (buf_lint_test, buf_format).
-# Generate vendors protovalidate inside buf_module; that tree is not in git.
+# Workspace buf config. Generate/lint copy this file; BSR deps stay remote.
 version: v2
 modules:
-  - path: api
+  - path: .
+    includes:
+      - api
+deps:
+  - buf.build/bufbuild/protovalidate:v1.2.2
 lint:
   use:
     - STANDARD

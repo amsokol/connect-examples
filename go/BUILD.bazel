@@ -1,34 +1,13 @@
-load("//bazel/lint:golangci.bzl", "golangci_test")
-load("//bazel/vuln:govulncheck.bzl", "govulncheck_test")
+load("@bazel_utils_go//:go.bzl", "golangci_test", "govulncheck_test")
 
 golangci_test(
     name = "lint",
-    # Match .golangci.yaml run.timeout (5m). size small is 60s and times out in CI.
-    size = "medium",
-    flags = [
-        "run",
-        "./go/...",
-    ],
-    # go list needs modules; sandbox has GOPROXY=off and no cache.
-    local = True,
-    tags = [
-        "external",
-        "no-cache",
-        "no-sandbox",
-        "requires-network",
-    ],
+    size = "small",
+    dirs = ["//go"],
 )
 
 govulncheck_test(
     name = "vuln",
     size = "small",
-    flags = ["./go/..."],
-    # Package load and vuln.go.dev need modules + network.
-    local = True,
-    tags = [
-        "external",
-        "no-cache",
-        "no-sandbox",
-        "requires-network",
-    ],
+    dirs = ["//go"],
 )

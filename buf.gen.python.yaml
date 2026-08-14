@@ -1,6 +1,13 @@
 version: v2
 plugins:
-  - local: protoc-gen-py
+  - remote: buf.build/protocolbuffers/python:v35.1
     out: python/gen
-  - local: protoc-gen-connectrpc
+    include_imports: true
+    include_wkt: true
+  - remote: buf.build/protocolbuffers/pyi:v35.1
     out: python/gen
+    include_imports: true
+    include_wkt: true
+  - remote: buf.build/connectrpc/py:v0.11.1
+    out: python/gen
+    opt: protobuf=google

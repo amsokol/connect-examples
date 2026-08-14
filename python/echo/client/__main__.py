@@ -6,11 +6,12 @@ import logging
 import sys
 
 from connectrpc.errors import ConnectError
+from protovalidate import ValidationError, validate
 from pyqwest import HTTPVersion, SyncClient, SyncHTTPTransport
 
 from python.echo.client.retry import RetryInterceptor
 from python.gen.api.v1.echo_connect import EchoServiceClientSync
-from python.gen.api.v1.echo_pb import EchoRequest
+from python.gen.api.v1.echo_pb2 import EchoRequest
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 log = logging.getLogger(__name__)
@@ -31,6 +32,11 @@ def main() -> int:
                 res = client.echo(EchoRequest(message="Jane"))
             except ConnectError, OSError, TimeoutError, ConnectionError:
                 log.exception("echo RPC failed")
+                return 1
+            try:
+                validate(res)
+            except ValidationError:
+                log.exception("echo response failed validation")
                 return 1
 
     log.info("%s", res.message)

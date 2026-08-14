@@ -1,14 +1,14 @@
 version: v2
 plugins:
   # Message types. One file per proto package — no packaging plugin.
-  - local: protoc-gen-buffa
+  - remote: buf.build/anthropics/buffa:v0.8.1
     out: rust/api/gen/buffa
     opt:
       - file_per_package=true
       - json=true
       - views=true
   # Connect stubs. Separate out: — both plugins emit <pkg>.rs.
-  - local: protoc-gen-connect-rust
+  - remote: buf.build/connectrpc/rust:v0.8.0
     out: rust/api/gen/connect
     opt:
       - file_per_package

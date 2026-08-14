@@ -1,21 +1,9 @@
-"""Buf CLI toolchain and pinned protovalidate protos."""
+"""Buf CLI and local codegen plugins."""
 
-# Prebuilt Buf CLI (buf cannot be built via go_deps — bufprivateusage guard).
-# Go codegen plugins are Bazel-built local binaries (see //bazel/buf).
-buf = use_extension("@rules_buf//buf:extensions.bzl", "buf")
+buf = use_extension("@bazel_utils_buf//:extensions.bzl", "buf")
 buf.toolchains(version = "v1.72.0")
-use_repo(buf, "rules_buf_toolchains")
-
-# Pinned protovalidate .proto sources. buf_module stages them at
-# third_party/protovalidate (local module path in the staged generate tree).
-http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
-
-http_archive(
-    name = "protovalidate_proto",
-    build_file = "//bazel/buf:protovalidate.BUILD.bazel",
-    integrity = "sha256-4yBPbAVkprAqXkaPXG9a3cX0WfxeQMLe5+O1TrVMXPk=",
-    # Upstream ships BUILD.bazel under buf/validate; delete so glob is one package.
-    patch_cmds = ["rm -f buf/validate/BUILD.bazel buf/validate/BUILD"],
-    strip_prefix = "protovalidate-1.2.2/proto/protovalidate",
-    urls = ["https://github.com/bufbuild/protovalidate/archive/refs/tags/v1.2.2.tar.gz"],
+buf.plugins(
+    name = "protoc-gen-protovalidate-buffa",
+    version = "v0.6.0",
 )
+use_repo(buf, "buf", "buf_plugins")

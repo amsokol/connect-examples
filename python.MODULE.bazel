@@ -1,4 +1,8 @@
-"""Python app and Buf plugin deps from the root uv.lock (@pypi)."""
+"""Python app deps from the root uv.lock (@pypi)."""
+
+python = use_extension("@rules_python//python/extensions:python.bzl", "python")
+python.defaults(python_version = "3.14")
+python.toolchain(python_version = "3.14")
 
 uv_bin = use_extension("@aspect_rules_py//uv/unstable:extension.bzl", "uv_bin")
 uv_bin.toolchain()
@@ -9,11 +13,7 @@ uv.declare_hub(
     hub_name = "pypi",
 )
 uv.project(
-    default_build_dependencies = [
-        "setuptools",
-        "build",
-        "wheel",
-    ],
+    default_build_dependencies = [],
     hub_name = "pypi",
     lock = "//:uv.lock",
     pyproject = "//:pyproject.toml",

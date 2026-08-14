@@ -38,7 +38,7 @@ bazel test //go:lint              # golangci-lint
 bazel test //python:lint          # ruff check + format --check
 bazel test //rust:lint            # clippy
 bazel test //bazel:lint           # Starlark (buildifier)
-bazel test //bazel/lint:markdown  # markdownlint-cli2
+bazel test //bazel:markdown       # markdownlint-cli2
 ```
 
 ```bash
@@ -124,11 +124,21 @@ Language lockfiles are the source of truth. After a bump, refresh the matching l
 
 | Area | Versions | Lock |
 | --- | --- | --- |
-| Go apps and tools (`buildifier`, `golangci-lint`, `govulncheck`, `protoc-gen-go`, `protoc-gen-connect-go`) | root `go.mod` (`require` / `tool`) | `go.sum` |
-| Python apps and tools (`ruff`, `pip-audit`, Buf Python plugins) | root `pyproject.toml` | `uv.lock` |
-| Rust apps, plugins, `cargo-audit` | root `Cargo.toml` `[workspace.dependencies]` | `Cargo.lock` |
-| Markdownlint | `pnpm-workspace.yaml` catalog | `pnpm-lock.yaml` |
-| Bazel rules, Buf CLI, protovalidate protos, LLVM, Node | `MODULE.bazel` and `*.MODULE.bazel` | `MODULE.bazel.lock` |
+| Go apps | root `go.mod` (`require`) | `go.sum` |
+| golangci-lint | `bazel_utils/go/golangci.MODULE.bazel` (GitHub release) | `sha256` on each `http_archive` |
+| govulncheck | `bazel_utils/go/go.mod` | `bazel_utils/go/go.sum` |
+| buildifier | `bazel_utils/bazel/buildifier.MODULE.bazel` (GitHub release) | `sha256` on each `http_file` |
+| markdownlint-cli2 | `bazel_utils/markdown/pnpm-workspace.yaml` | `bazel_utils/markdown/pnpm-lock.yaml` |
+| ruff | `bazel_utils/python/ruff.MODULE.bazel` (GitHub release) | `sha256` on each `http_archive` |
+| pip-audit | `bazel_utils/python/pyproject.toml` | `bazel_utils/python/uv.lock` |
+| cargo-audit | `bazel_utils/rust/cargo_audit.MODULE.bazel` (GitHub release) | `sha256` on each `http_archive` |
+| Python apps | root `pyproject.toml` | `uv.lock` |
+| Remote Buf plugins | `buf.gen.go.yaml`, `buf.gen.python.yaml`, `buf.gen.rust.yaml` | BSR |
+| Rust apps | root `Cargo.toml` `[workspace.dependencies]` | `Cargo.lock` |
+| Buf CLI | `buf.toolchains(version)` | `bazel_utils/buf/registry.bzl` `CLI` sha256; then `bazel run @buf//:buf -- --version` |
+| Local Buf plugin (`protoc-gen-protovalidate-buffa`) | `buf.plugins` + `bazel_utils/buf/plugins/<name>/<version>/Cargo.toml` | that version's `Cargo.lock` |
+| Protovalidate proto module | `buf.yaml` `deps` | BSR |
+| Bazel rules, LLVM, Node | `MODULE.bazel` and `*.MODULE.bazel` | `MODULE.bazel.lock` |
 
 Go toolchain follows the `go` line in `go.mod`. Rust toolchain follows `[workspace.package].rust-version` in `Cargo.toml` (`rust.MODULE.bazel`). After codegen plugin bumps, run `bazel run //api/v1:generate` and commit stub diffs.
 

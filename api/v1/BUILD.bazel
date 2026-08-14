@@ -1,7 +1,5 @@
 load("@bazel_lib//lib:write_source_files.bzl", "write_source_files")
-load("@protobuf//bazel:proto_library.bzl", "proto_library")
-load("@rules_buf//buf:defs.bzl", "buf_format", "buf_lint_test")
-load("//bazel/buf:buf.bzl", "buf_generate", "buf_module")
+load("@bazel_utils_buf//:buf.bzl", "buf_format", "buf_generate", "buf_lint_test", "buf_module")
 
 filegroup(
     name = "protos",
@@ -9,70 +7,38 @@ filegroup(
     visibility = ["//visibility:public"],
 )
 
-proto_library(
-    name = "echo_proto",
-    srcs = ["echo.proto"],
-    visibility = ["//visibility:public"],
-    deps = [
-        "@protobuf//:go_features_proto",
-        "@protovalidate_proto//:validate_proto",
-    ],
-)
-
-buf_lint_test(
-    name = "lint",
-    size = "small",
-    config = "//:buf.yaml",
-    module = "api",
-    targets = [":echo_proto"],
-)
-
-buf_format(
-    name = "format",
-)
-
-# Staged buf module for generate.
 buf_module(
     name = "module",
     srcs = [":protos"],
     visibility = ["//visibility:public"],
 )
 
+buf_lint_test(
+    name = "lint",
+    size = "small",
+    module = ":module",
+)
+
+buf_format(
+    name = "format",
+    module = ":module",
+)
+
 buf_generate(
     name = "go",
     module = ":module",
-    outdir = "go",
-    plugins = [
-        "//bazel/buf:protoc-gen-go",
-        "//bazel/buf:protoc-gen-connect-go",
-    ],
-    proto_dir = "api/v1",
     template = "//:buf.gen.go.yaml",
 )
 
 buf_generate(
     name = "python",
-    ensure_python_init = True,
-    include_imports = True,
     module = ":module",
-    outdir = "python/gen",
-    plugins = [
-        "//bazel/buf:protoc-gen-py",
-        "//bazel/buf:protoc-gen-connectrpc",
-    ],
     template = "//:buf.gen.python.yaml",
 )
 
 buf_generate(
     name = "rust",
-    full_tree = True,
     module = ":module",
-    outdir = "rust/api/gen",
-    plugins = [
-        "//bazel/buf:protoc-gen-buffa",
-        "//bazel/buf:protoc-gen-connect-rust",
-        "//bazel/buf:protoc-gen-protovalidate-buffa",
-    ],
     template = "//:buf.gen.rust.yaml",
 )
 

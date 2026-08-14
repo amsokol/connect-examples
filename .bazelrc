@@ -3,5 +3,9 @@
 common --experimental_platform_in_output_dir
 # Use a symlink prefix to avoid clobbering the workspace root.
 build --symlink_prefix=.bazel/
-# @pypi packages from pyproject [dependency-groups] `dev` (ruff, plugins).
-common --@aspect_rules_py//uv/private/constraints/venv:venv=dev
+# @pypi packages from [project] dependencies (implicit venv = project name).
+common --@pypi//venv=connect-examples
+# BSR auth: the sandbox does not inherit the user shell. `buf generate` /
+# `buf dep update` otherwise run anonymously and hit rate limits.
+build --action_env=BUF_TOKEN
+test --test_env=BUF_TOKEN

@@ -1,4 +1,3 @@
-load("@npm//:defs.bzl", "npm_link_all_packages")
 load("//constraints/amd64:defs.bzl", "AMD64_VARIANTS")
 load("//constraints/arm64:defs.bzl", "ARM64_VARIANTS")
 
@@ -8,14 +7,14 @@ exports_files([
     "buf.gen.rust.yaml",
     "buf.yaml",
     "MODULE.bazel",
+    "go.mod",
+    ".golangci.yaml",
+    ".markdownlint-cli2.yaml",
     "Cargo.lock",
     "Cargo.toml",
-    "pnpm-lock.yaml",
     "pyproject.toml",
     "uv.lock",
 ])
-
-npm_link_all_packages(name = "node_modules")
 
 # Configuration setting for fastbuild mode.
 config_setting(

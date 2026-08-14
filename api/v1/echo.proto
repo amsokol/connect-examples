@@ -24,5 +24,8 @@ message EchoRequest {
 
 // EchoResponse is the response message for EchoService.Echo.
 message EchoResponse {
-  string message = 1;
+  string message = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string = {min_len: 1}
+  ];
 }

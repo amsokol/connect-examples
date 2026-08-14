@@ -26,6 +26,7 @@ py_binary(
     deps = [
         ":client_lib",
         "@pypi//connectrpc",
+        "@pypi//protovalidate",
         "@pypi//pyqwest",
     ],
 )

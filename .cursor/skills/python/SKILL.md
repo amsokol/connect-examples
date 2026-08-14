@@ -32,7 +32,7 @@ All Python dependency versions live in the workspace root `pyproject.toml`. Nest
 
 ### Required
 
-- Declare every Python package (runtime, dev, build, plugins) in root `pyproject.toml` (`[project] dependencies`, `[dependency-groups]`, `[build-system] requires`).
+- Declare runtime packages in root `pyproject.toml` (`[project] dependencies`).
 - After a change, update the root `uv.lock`.
 
 ### Forbidden

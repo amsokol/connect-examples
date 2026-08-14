@@ -31,7 +31,7 @@ All Go module versions live in the workspace root `go.mod`. Nested manifests mus
 
 ### Required
 
-- Declare every Go module in root `go.mod` (`require` and `tool`).
+- Declare every Go module in root `go.mod` (`require`).
 - After a change, update the root `go.sum`.
 
 ### Forbidden
