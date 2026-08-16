@@ -23,10 +23,14 @@ All Rust source lives under `rust/`.
 
 Workspace manifests only: `Cargo.toml`, `Cargo.lock`. Do not put `.rs` files there.
 
+### Allowed outside rust/
+
+- Buf plugin pin crate at `third_party/buf/plugins/protoc-gen-protovalidate-buffa/` (git pin + crate_universe, not a workspace member).
+
 ### Forbidden
 
 - Rust application or library source outside `rust/` (repo root, `go/`, `python/`, or a new top-level tree).
-- New crates that are not `rust/…` workspace members.
+- New crates that are not `rust/…` workspace members (except the Buf plugin pin crate above).
 
 ## Dependencies
 

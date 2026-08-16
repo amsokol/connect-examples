@@ -136,7 +136,7 @@ Language lockfiles are the source of truth. After a bump, refresh the matching l
 | Remote Buf plugins | `buf.gen.go.yaml`, `buf.gen.python.yaml`, `buf.gen.rust.yaml` | BSR |
 | Rust apps | root `Cargo.toml` `[workspace.dependencies]` | `Cargo.lock` |
 | Buf CLI | `buf.toolchains(version)` | `bazel_utils/buf/registry.bzl` `CLI` sha256; then `bazel run @buf//:buf -- --version` |
-| Local Buf plugin (`protoc-gen-protovalidate-buffa`) | `buf.plugins` + `bazel_utils/buf/plugins/<name>/<version>/Cargo.toml` | that version's `Cargo.lock` |
+| Local Buf plugin (`protoc-gen-protovalidate-buffa`) | `third_party/buf/plugins/protoc-gen-protovalidate-buffa/Cargo.toml` | that package's `Cargo.lock` |
 | Protovalidate proto module | `buf.yaml` `deps` | BSR |
 | Bazel rules, LLVM, Node | `MODULE.bazel` and `*.MODULE.bazel` | `MODULE.bazel.lock` |
 

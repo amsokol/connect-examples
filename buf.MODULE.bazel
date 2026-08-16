@@ -2,8 +2,4 @@
 
 buf = use_extension("@bazel_utils_buf//:extensions.bzl", "buf")
 buf.toolchains(version = "v1.72.0")
-buf.plugins(
-    name = "protoc-gen-protovalidate-buffa",
-    version = "v0.6.0",
-)
 use_repo(buf, "buf", "buf_plugins")

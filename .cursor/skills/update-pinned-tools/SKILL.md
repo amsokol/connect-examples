@@ -28,7 +28,7 @@ Pins live in language lockfiles and `*.MODULE.bazel`. After a bump, refresh the 
 | Python apps | root `pyproject.toml` | `uv.lock` |
 | Remote Buf plugins | `buf.gen.go.yaml`, `buf.gen.python.yaml`, `buf.gen.rust.yaml` | BSR |
 | Buf CLI | `buf.toolchains(version)` | `bazel_utils/buf/registry.bzl` `CLI` sha256; then `bazel run @buf//:buf -- --version` |
-| Local Buf plugin (`protoc-gen-protovalidate-buffa`) | `buf.plugins(name, version)` + `bazel_utils/buf/registry.bzl` `PLUGINS` + `buf/plugins/<name>/<version>/Cargo.toml` | that version's `Cargo.lock`; crate_universe in `buf/plugins/<name>/<version>/crates.MODULE.bazel` |
+| Local Buf plugin (`protoc-gen-protovalidate-buffa`) | `third_party/buf/plugins/protoc-gen-protovalidate-buffa/Cargo.toml` git tag | that package's `Cargo.lock`; crate_universe in `crates.MODULE.bazel` |
 | Protovalidate proto module | `buf.yaml` `deps` | BSR |
 | LLVM + Debian sysroots | `rust.MODULE.bazel` | hashes in `llvm.toolchain` / `sysroot` |
 
@@ -45,5 +45,5 @@ Built from GitHub, not crates.io.
 
 When bumping:
 
-1. Add `buf/plugins/protoc-gen-protovalidate-buffa/<version>/` (Cargo.toml git tag, crate_universe). Keep runtime `protovalidate-buffa` in root `Cargo.toml` in lockstep. Point `buf.plugins(version)` / `registry.bzl` at the new package.
-2. Update that version's `Cargo.lock` and `cargo-bazel-lock.json` (`CARGO_BAZEL_REPIN=1 bazel build //plugins/protoc-gen-protovalidate-buffa/<version>:protoc-gen-protovalidate-buffa` from `bazel_utils/buf` with `--override_module=bazel_utils_core=../core`). Update the consumer `Cargo.lock`, then `bazel run //api/v1:generate`.
+1. Update the git tag in `third_party/buf/plugins/protoc-gen-protovalidate-buffa/Cargo.toml`. Keep runtime `protovalidate-buffa` in root `Cargo.toml` in lockstep.
+2. Update that package's `Cargo.lock`. Update the consumer `Cargo.lock`, then `bazel run //api/v1:generate`.
