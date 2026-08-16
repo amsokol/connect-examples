@@ -9,15 +9,15 @@ sysroot = use_repo_rule("@toolchains_llvm//toolchain:sysroot.bzl", "sysroot")
 # INTEL/AMD64 Sysroot.
 sysroot(
     name = "sysroot_linux_amd64",
-    sha256 = "0d02706045eb4664e060e1694d192e92812820c5622fdc2ae7aa0720aa3356d6",
-    urls = ["https://github.com/amsokol/cross-compilation-sysroots/releases/download/2026-08-06/debian-trixie-sysroot-amd64.tar.xz"],
+    sha256 = "91eb4b39552334347fdb1ba06d814b2ade02e552000d5a42cc11210563e090ce",
+    urls = ["https://github.com/amsokol/cross-compilation-sysroots/releases/download/2026-08-16/debian-trixie-sysroot-amd64.tar.xz"],
 )
 
 # ARM 64 Sysroot.
 sysroot(
     name = "sysroot_linux_arm64",
-    sha256 = "16ca697e2afe31a704672a08488ea558d8acf0bbc9906e5149f040d37d43df27",
-    urls = ["https://github.com/amsokol/cross-compilation-sysroots/releases/download/2026-08-06/debian-trixie-sysroot-arm64.tar.xz"],
+    sha256 = "fe8db57ee8ec510161d8ca4687974d6f64e98ec93440388462309a68f76e96a3",
+    urls = ["https://github.com/amsokol/cross-compilation-sysroots/releases/download/2026-08-16/debian-trixie-sysroot-arm64.tar.xz"],
 )
 
 llvm = use_extension("@toolchains_llvm//toolchain/extensions:llvm.bzl", "llvm", dev_dependency = True)
