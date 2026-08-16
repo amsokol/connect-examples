@@ -86,6 +86,17 @@ jobs:
         run: bazel test //... --keep_going --test_output=all
 
       # Stop the server so repository/disk caches are idle before actions/cache tars them.
+      # Unprivileged debian:13 containers often cannot reap the JVM after SIGKILL
+      # (Bazel exit 36). That must not fail the job, or the cache post step is skipped.
       - name: Stop Bazel
         if: always()
-        run: bazel shutdown
+        continue-on-error: true
+        run: |
+          set +e
+          bazel shutdown
+          for pidfile in "${HOME}"/.cache/bazel/_bazel_*/server/server.pid; do
+            if [ -f "${pidfile}" ]; then
+              kill -9 "$(cat "${pidfile}")" 2>/dev/null || true
+            fi
+          done
+          exit 0
