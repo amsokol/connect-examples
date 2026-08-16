@@ -9,14 +9,14 @@ sysroot = use_repo_rule("@toolchains_llvm//toolchain:sysroot.bzl", "sysroot")
 # INTEL/AMD64 Sysroot.
 sysroot(
     name = "sysroot_linux_amd64",
-    sha256 = "91eb4b39552334347fdb1ba06d814b2ade02e552000d5a42cc11210563e090ce",
+    sha256 = "40be86b00d362da906b9dafb2377444edb498360e6109cc31e4b15306c3b21d7",
     urls = ["https://github.com/amsokol/cross-compilation-sysroots/releases/download/2026-08-16/debian-trixie-sysroot-amd64.tar.xz"],
 )
 
 # ARM 64 Sysroot.
 sysroot(
     name = "sysroot_linux_arm64",
-    sha256 = "fe8db57ee8ec510161d8ca4687974d6f64e98ec93440388462309a68f76e96a3",
+    sha256 = "3628f6f4a501e5eeef06946d7bef91fc291d53e9748a8b925208013c6244a469",
     urls = ["https://github.com/amsokol/cross-compilation-sysroots/releases/download/2026-08-16/debian-trixie-sysroot-arm64.tar.xz"],
 )
 
